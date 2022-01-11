@@ -4,10 +4,18 @@ defmodule Scitree.Native do
   def load_nifs(), do: :erlang.load_nif('./c_src/scitree/scitree', 0)
 
   def train(_config, _path) do
-    raise "NIF train_dataset_path/2 not loaded"
+    raise "NIF train/2 not loaded"
   end
 
   def predict(_config, _model) do
     raise "NIF predict/2 not loaded"
+  end
+
+  def train_csv(_config, _path) do
+    raise "NIF train_csv/2 not loaded"
+  end
+
+  def predict_csv(_config, _model) do
+    raise "NIF predict_csv/2 not loaded"
   end
 end
