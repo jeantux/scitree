@@ -20,6 +20,10 @@ namespace scitree
             std::string task;
         };
 
+        ERL_NIF_TERM ok(ErlNifEnv* env) {
+            return enif_make_atom(env, "ok");
+        }
+
         ERL_NIF_TERM error(ErlNifEnv* env, const char* msg) {
             ERL_NIF_TERM atom = enif_make_atom(env, "error");
             ERL_NIF_TERM msg_term = enif_make_string(env, msg, ERL_NIF_LATIN1);
