@@ -5,7 +5,12 @@ package(
 
 cc_binary(
     name = "scitree",
-    srcs = ["scitree.cpp", "scitree_nif_helper.hpp"],
+    srcs = [
+        "scitree.cpp",
+        "scitree_nif_helper.hpp",
+        "scitree_dataset.hpp",
+        "scitree_learner.hpp"
+    ],
     linkopts = ["-shared"],
     copts = ["-Iexternal/erlnif", "-fPIC", "-O3", "-Wall", "-Wextra"],
     deps = [
