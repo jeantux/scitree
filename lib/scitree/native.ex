@@ -7,7 +7,7 @@ defmodule Scitree.Native do
     raise "NIF train/2 not loaded"
   end
 
-  def predict(_config, _model) do
+  def predict(_reference, _model) do
     raise "NIF predict/2 not loaded"
   end
 
@@ -15,7 +15,11 @@ defmodule Scitree.Native do
     raise "NIF train_csv/2 not loaded"
   end
 
-  def predict_csv(_config, _model) do
+  def predict_csv(_reference, _model) do
     raise "NIF predict_csv/2 not loaded"
+  end
+
+  def save(_reference, _path) do
+    raise "NIF save/2 not loaded"
   end
 end

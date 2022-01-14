@@ -4,13 +4,14 @@ defmodule Scitree.Config do
   @type learners :: :random_forest | :gradient_boosted_trees
 
   @options %{
-    max_depth: 16,
-    min_examples: 5
+    maximum_model_size_in_memory_in_bytes: -1.0,
+    maximum_training_duration_seconds: -1.0,
+    random_seed: 123456
   }
 
-  defstruct learner: nil,
+  defstruct learner: :random_forest,
             options: @options,
-            task: :regression,
+            task: :classification,
             label: "scitree",
             log_directory: ""
 
@@ -24,10 +25,14 @@ defmodule Scitree.Config do
       iex> Scitree.Config.init()
       %Scitree.Config{
         label: "scitree",
-        learner: nil,
+        learner: :random_forest,
         log_directory: "",
-        options: %{max_depth: 16, min_examples: 5},
-        task: :regression
+        options: %{
+          maximum_model_size_in_memory_in_bytes: -1.0,
+          maximum_training_duration_seconds: -1.0,
+          random_seed: 123456
+        },
+        task: :classification
       }
   """
 
@@ -46,24 +51,37 @@ defmodule Scitree.Config do
         label: "scitree",
         learner: :random_forest,
         log_directory: "",
-        options: %{max_depth: 16, min_examples: 5},
-        task: :regression
+        options: %{
+          maximum_model_size_in_memory_in_bytes: -1.0,
+          maximum_training_duration_seconds: -1.0,
+          random_seed: 123456
+        },
+        task: :classification
       }
 
-  to change default options like max_depth, min_examples, can use the following example.
 
-  Maximum depth of the tree. max_depth=1 means that all trees will be roots.
-  If max_depth=-1, the depth of the tree is not limited.
+    Learner parameters can be changed, you can use the following options:
+    (parameters that are not manually set will assume default values)
+
+    * maximum_model_size_in_memory_in_bytes: Limit the size of the model when stored in ram.
+    * maximum_training_duration_seconds: Maximum training duration of the model expressed in seconds.
+    * random_seed: Random seed for the training of the model.
+
+    To change default options, can use the following example.
 
   ## Examples
 
-      iex> Scitree.Config.init() |> Scitree.Config.learner(:random_forest, max_depth: 1, min_examples: 10)
+      iex> Scitree.Config.init() |> Scitree.Config.learner(:random_forest, random_seed: 654321)
       %Scitree.Config{
-        label: "scitree_label",
+        label: "scitree",
         learner: :random_forest,
         log_directory: "",
-        options: %{max_depth: 1, min_examples: 10},
-        task: :regression
+        options: %{
+          maximum_model_size_in_memory_in_bytes: -1.0,
+          maximum_training_duration_seconds: -1.0,
+          random_seed: 654321
+        },
+        task: :classification
       }
   """
   @spec learner(t(), learners(), list()) :: t()
