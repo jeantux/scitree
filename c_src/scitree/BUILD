@@ -12,7 +12,14 @@ cc_binary(
         "scitree_learner.hpp"
     ],
     linkopts = ["-shared"],
-    copts = ["-Iexternal/erlnif", "-fPIC", "-O3", "-Wall", "-Wextra"],
+    copts = [
+        "-Iexternal/erlnif",
+        "-fPIC",
+        "-O3",
+        "-Wall",
+        "-Wextra",
+        "-fpermissive"
+    ],
     deps = [
         "@erlnif//:headers",
         "@com_google_absl//absl/flags:flag",
@@ -30,4 +37,3 @@ cc_binary(
         "@ydf//yggdrasil_decision_forests/model:model_library",
     ]
 )
-  
