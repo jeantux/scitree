@@ -5,7 +5,7 @@
 #include <string>
 #include <iostream>
 #include <algorithm>
-#include "yggdrasil_decision_forests/model/abstract_model.pb.h";
+#include "yggdrasil_decision_forests/model/abstract_model.pb.h"
 
 namespace scitree
 {
@@ -80,6 +80,22 @@ int get(ErlNifEnv *env, ERL_NIF_TERM term, int *var) {
     return 1;
 }
 
+int get(ErlNifEnv *env, ERL_NIF_TERM term, int16_t *var) {
+    int value;
+    if (!enif_get_int(env, term, &value))
+        return 0;
+    *var = static_cast<int16_t>(value);
+    return 1;
+}
+
+int get(ErlNifEnv *env, ERL_NIF_TERM term, int64_t *var) {
+    int value;
+    if (!enif_get_int(env, term, &value))
+        return 0;
+    *var = static_cast<int64_t>(value);
+    return 1;
+}
+
 int get(ErlNifEnv *env, ERL_NIF_TERM term, float *var) {
     double value;
     if (!enif_get_double(env, term, &value))
@@ -108,10 +124,6 @@ int get_atom(ErlNifEnv *env, ERL_NIF_TERM term, std::string &var) {
     var.resize(atom_length);
 
     return 1;
-}
-
-ERL_NIF_TERM atom(ErlNifEnv *env, const char *msg) {
-    return enif_make_atom(env, msg);
 }
 
 // scitree types
@@ -186,6 +198,7 @@ SCITREE_CONFIG make_scitree_config(ErlNifEnv *env, ERL_NIF_TERM term) {
 
     return config;
 }
+
 }
 
 }
