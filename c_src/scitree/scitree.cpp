@@ -42,6 +42,41 @@ static int load(ErlNifEnv *env, void **priv, ERL_NIF_TERM load_info) {
 }
 
 static ERL_NIF_TERM train(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
+  scitree::nif::SCITREE_CONFIG config = scitree::nif::make_scitree_config(env, argv[0]);
+
+  if (config.error.error) {
+    return scitree::nif::error(env, config.error.reason.c_str());
+  }
+
+  int size_dataset;
+  ERL_NIF_TERM* tuple_dataset;
+
+  enif_get_tuple(env, argv[1], &size_dataset, &tuple_dataset);
+
+  // Training configuration
+  ygg::model::proto::TrainingConfig train_config;
+  train_config.set_learner(config.learner);
+  train_config.set_task(config.task);
+  train_config.set_label(config.label);
+  
+  // Create types dataspec
+  ygg::dataset::proto::DataSpecification spec;
+  ygg::dataset::VerticalDataset dataset;
+
+  // Load dataspec and dataset
+  scitree::dataset::load_data_spec(&spec, env, tuple_dataset, size_dataset);
+  scitree::dataset::load_dataset(&dataset, &spec, env, tuple_dataset, size_dataset);
+
+  // Config leaener
+  std::unique_ptr<ygg::model::AbstractLearner> learner;
+  GetLearner(train_config, &learner);
+
+  if (config.log_directory.length() > 0)
+    learner->set_log_directory(config.log_directory);
+
+  // Define options
+  learner->SetHyperParameters(scitree::learner::get_hyper_params(config.options));
+
   return scitree::nif::ok(env);
 }
 
