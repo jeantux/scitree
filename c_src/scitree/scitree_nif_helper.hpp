@@ -15,7 +15,7 @@ namespace ygg = yggdrasil_decision_forests;
 using real = double;
 
 struct SCITREE_ERROR {
-    bool error = false;
+    bool status = false;
     std::string reason = "";
 };
 
@@ -140,28 +140,28 @@ SCITREE_CONFIG make_scitree_config(ErlNifEnv *env, ERL_NIF_TERM term) {
     enif_get_map_value(env, term, enif_make_atom(env, "options"), &options_nif);
 
     if (!get(env, label_nif, label)) {
-        config.error.error = true;
+        config.error.status = true;
         config.error.reason = "Unable to get label.";
 
         return config;
     }
 
     if (!get_atom(env, learner_nif, learner)) {
-        config.error.error = true;
+        config.error.status = true;
         config.error.reason = "Unable to get learner.";
 
         return config;
     }
 
     if (!get(env, log_directory_nif, log_directory)) {
-        config.error.error = true;
+        config.error.status = true;
         config.error.reason = "Unable to get log_directory.";
 
         return config;
     }
 
     if (!get_atom(env, task_nif, task_str)) {
-        config.error.error = true;
+        config.error.status = true;
         config.error.reason = "Unable to get task.";
 
         return config;

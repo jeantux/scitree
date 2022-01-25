@@ -44,7 +44,7 @@ static int load(ErlNifEnv *env, void **priv, ERL_NIF_TERM load_info) {
 static ERL_NIF_TERM train(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
   scitree::nif::SCITREE_CONFIG config = scitree::nif::make_scitree_config(env, argv[0]);
 
-  if (config.error.error) {
+  if (config.error.status) {
     return scitree::nif::error(env, config.error.reason.c_str());
   }
 
@@ -63,9 +63,18 @@ static ERL_NIF_TERM train(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
   ygg::dataset::proto::DataSpecification spec;
   ygg::dataset::VerticalDataset dataset;
 
-  // Load dataspec and dataset
-  scitree::dataset::load_data_spec(&spec, env, tuple_dataset, size_dataset);
-  scitree::dataset::load_dataset(&dataset, &spec, env, tuple_dataset, size_dataset);
+  auto error_spec = scitree::dataset::load_data_spec(&spec, env, tuple_dataset, size_dataset);
+  if (error_spec.status) {
+    return scitree::nif::error(env, error_spec.reason.c_str());
+  }
+
+  auto error_dataset = scitree::dataset::load_dataset(&dataset, &spec, env, tuple_dataset, size_dataset);
+  if (error_dataset.status) {
+    return scitree::nif::error(env, error_dataset.reason.c_str());
+  }
+
+  LOG(INFO) << "Training dataset:\n"
+            << ygg::dataset::PrintHumanReadable(dataset.data_spec(), false);
 
   // Config leaener
   std::unique_ptr<ygg::model::AbstractLearner> learner;
@@ -77,46 +86,7 @@ static ERL_NIF_TERM train(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
   // Define options
   learner->SetHyperParameters(scitree::learner::get_hyper_params(config.options));
 
-  return scitree::nif::ok(env);
-}
-
-static ERL_NIF_TERM train_csv(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
-  scitree::nif::SCITREE_CONFIG config = scitree::nif::make_scitree_config(env, argv[0]);
-
-  std::string path;
-
-  if (!scitree::nif::get(env, argv[1], path)) {
-    return scitree::nif::error(env, "Unable to get csv path.");
-  }
-
-  if (config.error.error) {
-    return scitree::nif::error(env, config.error.reason.c_str());
-  }
-
-  auto dataset_path = "csv:" + path;
-
-  // Training configuration
-  ygg::model::proto::TrainingConfig train_config;
-  train_config.set_learner(config.learner);
-  train_config.set_task(config.task);
-  train_config.set_label(config.label);
-
-  // Scan the dataset
-  ygg::dataset::proto::DataSpecification spec;
-  ygg::dataset::CreateDataSpec(dataset_path, false, {}, &spec);
-
-  // Config leaener
-  std::unique_ptr<ygg::model::AbstractLearner> learner;
-  GetLearner(train_config, &learner);
-
-  if (config.log_directory.length() > 0)
-    learner->set_log_directory(config.log_directory);
-
-  // Define options
-  learner->SetHyperParameters(scitree::learner::get_hyper_params(config.options));
-
-  // Train a model
-  auto model = learner->Train(dataset_path, spec);
+  auto model = learner->TrainWithStatus(dataset).value();
   ygg::model::AbstractModel **p_model;
   p_model = (ygg::model::AbstractModel **)enif_alloc_resource(RES_TYPE, sizeof(ygg::model::AbstractModel *));
 
@@ -185,7 +155,6 @@ static ERL_NIF_TERM save(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
 
 static ErlNifFunc nif_funcs[] = {
     {"train", 2, train},
-    {"train_csv", 2, train_csv},
     {"predict", 2, predict},
     {"predict_csv", 2, predict_csv},
     {"save", 2, save}};

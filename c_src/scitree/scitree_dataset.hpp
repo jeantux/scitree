@@ -41,10 +41,11 @@ static std::unordered_map<std::string, proto::ColumnType>
           {"hash", proto::ColumnType::HASH}
       };
 
-void load_data_spec(
-  const proto::DataSpecification* data_spec,
+scitree::nif::SCITREE_ERROR load_data_spec(
+  proto::DataSpecification* data_spec,
   ErlNifEnv *env, ERL_NIF_TERM* tuple, int size
 ) {
+  scitree::nif::SCITREE_ERROR error;
   data_spec->clear_columns();
 
   for (size_t i = 0; i < size; i++) {
@@ -63,54 +64,132 @@ void load_data_spec(
 
     auto col_type = spec_types.find(type);
     if (col_type != spec_types.end()) {
-      column->set_is_manual_type(true);
       column->set_type(col_type->second);
     } else {
-      // column->set_is_manual_type(false);
-      // detect type or break execution
+      error.status = true;
+      error.reason = "type not identified to column " + name;
     }
+
   }
 
-  // Sort the column by name.
   std::sort(data_spec->mutable_columns()->begin(),
             data_spec->mutable_columns()->end(),
             [](const proto::Column& a, const proto::Column& b) {
               return a.name() < b.name();
             });
+
+  return error;
 }
 
-void load_dataset(
+scitree::nif::SCITREE_ERROR load_dataset(
   ds::VerticalDataset *dataset,
   proto::DataSpecification* data_spec,
   ErlNifEnv *env, ERL_NIF_TERM* tuple, int column_size
 ) {
-    dataset->set_data_spec(*data_spec);
-    dataset->CreateColumnsFromDataspec();
+  scitree::nif::SCITREE_ERROR error;
+  dataset->set_data_spec(*data_spec);
+  dataset->CreateColumnsFromDataspec();
+  
+  // Initialize accumulator
+  ds::proto::DataSpecificationAccumulator accumulator;
+  ds::InitializeDataspecAccumulator(dataset->data_spec(), &accumulator);
+  
+  for (int i = 0; i < column_size; i++) {
+    std::string name, type;
+    int size_dataset = 0;
+    ERL_NIF_TERM* tuple_dataset;
 
-    int rec_count = 0;
-    for (size_t i = 0; i < column_size; i++) {
-      rec_count = 0;
-      std::string name, type;
-      int size_dataset = 0;
-      ERL_NIF_TERM* tuple_dataset;
+    enif_get_tuple(env, tuple[i], &size_dataset, &tuple_dataset);
+    scitree::nif::get(env, tuple_dataset[0], name);
+    scitree::nif::get_atom(env, tuple_dataset[1], type);
+    
+    int empty = 0;
+    ERL_NIF_TERM head, tail;
+    ERL_NIF_TERM term = tuple_dataset[2];
 
-      enif_get_tuple(env, tuple[i], &size_dataset, &tuple_dataset);
-      scitree::nif::get(env, tuple_dataset[0], name);
-      scitree::nif::get_atom(env, tuple_dataset[1], type);
+    auto col_type = spec_types.find(type);
+    if (col_type == spec_types.end()) {
+      error.status = true;
+      error.reason = "type not identified to column " + name;
+    }
 
-      const int col_idx = ds::GetColumnIdxFromName(name, *data_spec);
+    int idx_type = col_type->second;
+    auto* col = dataset->mutable_data_spec()->mutable_columns(i);
+    auto* col_acc = accumulator.mutable_columns(i);
 
-      // put itens in dataset
-      int empty = 0;
-      ERL_NIF_TERM head, tail;
-      ERL_NIF_TERM term = tuple_dataset[2];
+    while (!empty) {
+      empty = !enif_get_list_cell(env, term, &head, &tail);
 
-      auto col_type = spec_types.find(type);
-      if (col_type == spec_types.end()) {
-        // return with error
+      if (!empty) {
+
+        if (idx_type == proto::ColumnType::NUMERICAL) {
+          float value;
+          scitree::nif::get(env, head, &value);
+          ds::UpdateNumericalColumnSpec(value, col, col_acc);
+        } else if (idx_type == proto::ColumnType::CATEGORICAL) {
+          int32_t value;
+          scitree::nif::get(env, head, &value);
+          ds::UpdateCategoricalIntColumnSpec(value, col, col_acc);
+        }
+
+        term = tail;
       }
+    }
+  }
 
-      int idx_type = col_type->second;
+  // Add values in dataset
+  int rec_count;
+  for (int i = 0; i < column_size; i++) {
+    rec_count = 0;
+    std::string name, type;
+    int size_dataset = 0;
+    ERL_NIF_TERM* tuple_dataset;
+
+    enif_get_tuple(env, tuple[i], &size_dataset, &tuple_dataset);
+    scitree::nif::get(env, tuple_dataset[0], name);
+    scitree::nif::get_atom(env, tuple_dataset[1], type);
+    
+    // put itens in dataset
+    int empty = 0;
+    ERL_NIF_TERM head, tail;
+    ERL_NIF_TERM term = tuple_dataset[2];
+    auto col_type = spec_types.find(type);
+    if (col_type == spec_types.end()) {
+      error.status = true;
+      error.reason = "type not identified to column " + name;
+    }
+
+    int idx_type = col_type->second;
+    
+    const int col_idx = ds::GetColumnIdxFromName(name, dataset->data_spec());
+
+    if (idx_type == proto::ColumnType::CATEGORICAL) {
+      const auto& col_spec = dataset->data_spec().columns(i);
+      auto* col_data = dataset->MutableColumnWithCast<ds::VerticalDataset::CategoricalColumn>(col_idx);
+      col_data->Resize(0);
+
+      while (!empty) {
+        empty = !enif_get_list_cell(env, term, &head, &tail);
+
+        if (!empty) {
+          int32_t value;
+          scitree::nif::get(env, head, &value);
+
+          if (value < ds::VerticalDataset::CategoricalColumn::kNaValue) {
+            // Treated as missing value.
+            value = ds::VerticalDataset::CategoricalColumn::kNaValue;
+          }
+          if (value >= col_spec.categorical().number_of_unique_values()) {
+            // Treated as out-of-dictionary.
+            value = 0;
+          }
+          col_data->Add(value);
+
+          term = tail;
+        }
+      }
+    } else {
+      auto* col_num = dataset->MutableColumnWithCast<ds::VerticalDataset::NumericalColumn>(col_idx);        auto* col = dataset->MutableColumnWithCast<ds::VerticalDataset::NumericalColumn>(col_idx);
 
       while (!empty) {
         empty = !enif_get_list_cell(env, term, &head, &tail);
@@ -118,44 +197,21 @@ void load_dataset(
         if (!empty) {
           rec_count ++;
 
-          if (idx_type == proto::ColumnType::NUMERICAL) {
-            float value;
-            scitree::nif::get(env, head, &value);
-            auto* col =
-              dataset->MutableColumnWithCast<ds::VerticalDataset::NumericalColumn>(col_idx);
-            col->Add(value);
-          } else if (idx_type == proto::ColumnType::CATEGORICAL) {
-            int32_t value;
-            scitree::nif::get(env, head, &value);
-            auto* col =
-              dataset->MutableColumnWithCast<ds::VerticalDataset::CategoricalColumn>(col_idx);
-            col->Add(value);
-          } else if (idx_type == proto::ColumnType::DISCRETIZED_NUMERICAL) {
-            int16_t value;
-            scitree::nif::get(env, head, &value);
-            auto* col =
-              dataset->MutableColumnWithCast<ds::VerticalDataset::DiscretizedNumericalColumn>(col_idx);
-            col->Add(value);
-          } else if (idx_type == proto::ColumnType::HASH) {
-            int64_t value;
-            scitree::nif::get(env, head, &value);
-            auto* col =
-              dataset->MutableColumnWithCast<ds::VerticalDataset::HashColumn>(col_idx);
-            col->Add(value);
-          } else if (idx_type == proto::ColumnType::STRING) {
-            std::string value;
-            scitree::nif::get(env, head, value);
-            auto* col =
-              dataset->MutableColumnWithCast<ds::VerticalDataset::StringColumn>(col_idx);
-            col->Add(value);            
-          }
+          float value;
+          scitree::nif::get(env, head, &value);
 
-          term = tail;
+          col_num->Add(value);
         }
+
+        term = tail;
       }
     }
-    dataset->set_nrow(rec_count);
+  }
 
+  dataset->mutable_data_spec()->set_created_num_rows(rec_count);
+  dataset->set_nrow(rec_count);
+
+  return error;
 }
 
 }
