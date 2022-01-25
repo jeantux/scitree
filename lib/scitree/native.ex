@@ -1,7 +1,10 @@
 defmodule Scitree.Native do
   @on_load :load_nifs
 
-  def load_nifs(), do: :erlang.load_nif('./c_src/scitree/scitree', 0)
+  def load_nifs() do
+    path = :filename.join(:code.priv_dir(:scitree), 'scitree')
+    :erlang.load_nif(path, 0)
+  end
 
   def train(_config, _path) do
     raise "NIF train/2 not loaded"
