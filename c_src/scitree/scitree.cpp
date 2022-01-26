@@ -53,6 +53,10 @@ static ERL_NIF_TERM train(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
 
   enif_get_tuple(env, argv[1], &size_dataset, &tuple_dataset);
 
+  if (size_dataset <= 0) {
+    return scitree::nif::error(env, "Empty or invalid dataset.");
+  }
+
   // Training configuration
   ygg::model::proto::TrainingConfig train_config;
   train_config.set_learner(config.learner);
@@ -101,28 +105,46 @@ static ERL_NIF_TERM train(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
 }
 
 static ERL_NIF_TERM predict(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
-  return scitree::nif::ok(env);
-}
-
-static ERL_NIF_TERM predict_csv(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
   ygg::model::AbstractModel **p_model;
 
   if (!enif_get_resource(env, argv[0], RES_TYPE, (void **)&p_model)) {
     return scitree::nif::error(env, "Unable to load resource.");
   }
 
-  // Will compile the model into the most efficient engine on the current hardware
+  int size_dataset;
+  ERL_NIF_TERM* tuple_dataset;
+
+  enif_get_tuple(env, argv[1], &size_dataset, &tuple_dataset);
+  
+  if (size_dataset <= 0) {
+    return scitree::nif::error(env, "Empty or invalid dataset.");
+  }
+
+  // Create types dataspec
+  ygg::dataset::VerticalDataset dataset_predit;
+  ygg::dataset::proto::DataSpecification spec = (**p_model).data_spec();
+
+  // Load dataset
+  auto error_dataset = scitree::dataset::load_dataset(&dataset_predit, &spec, env, tuple_dataset, size_dataset);
+  if (error_dataset.status) {
+    return scitree::nif::error(env, error_dataset.reason.c_str());
+  }
+
+  // Will compile the model into the most efficient engine
+  // on the current hardware.
   const std::unique_ptr<ygg::serving::FastEngine> serving_engine =
       (**p_model).BuildFastEngine().value();
   const auto &features = serving_engine->features();
 
-  // Allocate a batch of two examples.
+  int count = dataset_predit.nrow();
   std::unique_ptr<ygg::serving::AbstractExampleSet> examples =
-      serving_engine->AllocateExamples(2);
+      serving_engine->AllocateExamples(count);
 
-  // Run the predictions on the first two examples.
+  ygg::serving::CopyVerticalDatasetToAbstractExampleSet(
+      dataset_predit, 0, count -1, features, examples.get());
+  
   std::vector<float> batch_of_predictions;
-  serving_engine->Predict(*examples, 2, &batch_of_predictions);
+  serving_engine->Predict(*examples, count, &batch_of_predictions);
 
   ERL_NIF_TERM predictions[batch_of_predictions.size()];
   int i = 0;
@@ -141,7 +163,7 @@ static ERL_NIF_TERM save(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
   std::string path;
 
   if (!scitree::nif::get(env, argv[1], path)) {
-    return scitree::nif::error(env, "Unable to get csv path.");
+    return scitree::nif::error(env, "Unable to get path.");
   }
 
   if (!enif_get_resource(env, argv[0], RES_TYPE, (void **)&p_model)) {
@@ -156,7 +178,6 @@ static ERL_NIF_TERM save(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
 static ErlNifFunc nif_funcs[] = {
     {"train", 2, train},
     {"predict", 2, predict},
-    {"predict_csv", 2, predict_csv},
     {"save", 2, save}};
 
 ERL_NIF_INIT(Elixir.Scitree.Native, nif_funcs, &load, NULL, NULL, NULL)

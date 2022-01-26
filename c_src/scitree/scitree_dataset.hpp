@@ -138,7 +138,7 @@ scitree::nif::SCITREE_ERROR load_dataset(
   }
 
   // Add values in dataset
-  int rec_count;
+  int rec_count = 0;
   for (int i = 0; i < column_size; i++) {
     rec_count = 0;
     std::string name, type;
@@ -148,8 +148,7 @@ scitree::nif::SCITREE_ERROR load_dataset(
     enif_get_tuple(env, tuple[i], &size_dataset, &tuple_dataset);
     scitree::nif::get(env, tuple_dataset[0], name);
     scitree::nif::get_atom(env, tuple_dataset[1], type);
-    
-    // put itens in dataset
+
     int empty = 0;
     ERL_NIF_TERM head, tail;
     ERL_NIF_TERM term = tuple_dataset[2];
