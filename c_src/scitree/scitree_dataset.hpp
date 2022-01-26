@@ -188,7 +188,7 @@ scitree::nif::SCITREE_ERROR load_dataset(
         }
       }
     } else {
-      auto* col_num = dataset->MutableColumnWithCast<ds::VerticalDataset::NumericalColumn>(col_idx);        auto* col = dataset->MutableColumnWithCast<ds::VerticalDataset::NumericalColumn>(col_idx);
+      auto* col_num = dataset->MutableColumnWithCast<ds::VerticalDataset::NumericalColumn>(col_idx);
 
       while (!empty) {
         empty = !enif_get_list_cell(env, term, &head, &tail);
