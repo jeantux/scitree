@@ -17,6 +17,7 @@
 #include <vector>
 #include <cstring>
 #include <erl_nif.h>
+#include <cmath>
 
 ErlNifResourceType *RES_TYPE;
 
@@ -136,25 +137,29 @@ static ERL_NIF_TERM predict(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
       (**p_model).BuildFastEngine().value();
   const auto &features = serving_engine->features();
 
-  int count = dataset_predit.nrow();
+  int num_row = dataset_predit.nrow();
   std::unique_ptr<ygg::serving::AbstractExampleSet> examples =
-      serving_engine->AllocateExamples(count);
+      serving_engine->AllocateExamples(num_row);
 
   ygg::serving::CopyVerticalDatasetToAbstractExampleSet(
-      dataset_predit, 0, count -1, features, examples.get());
+      dataset_predit, 0, num_row -1, features, examples.get());
   
   std::vector<float> batch_of_predictions;
-  serving_engine->Predict(*examples, count, &batch_of_predictions);
+  serving_engine->Predict(*examples, num_row, &batch_of_predictions);
 
-  ERL_NIF_TERM predictions[batch_of_predictions.size()];
+  int batch_size = batch_of_predictions.size();
+  int qtt_category_types = trunc(batch_size / num_row);
+
+  ERL_NIF_TERM predictions[batch_size];
   int i = 0;
   for (float const &predict : batch_of_predictions) {
     predictions[i++] = enif_make_double(env, predict);
   }
 
+  ERL_NIF_TERM chunk = enif_make_int(env, qtt_category_types);
   ERL_NIF_TERM list = enif_make_list_from_array(env, predictions, batch_of_predictions.size());
 
-  return enif_make_tuple2(env, scitree::nif::ok(env), list);
+  return enif_make_tuple3(env, scitree::nif::ok(env), list, chunk);
 }
 
 static ERL_NIF_TERM save(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
