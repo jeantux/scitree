@@ -117,22 +117,27 @@ scitree::nif::SCITREE_ERROR load_dataset(
     auto* col = dataset->mutable_data_spec()->mutable_columns(i);
     auto* col_acc = accumulator.mutable_columns(i);
 
-    while (!empty) {
-      empty = !enif_get_list_cell(env, term, &head, &tail);
+    if (idx_type == proto::ColumnType::NUMERICAL) {
+      while (!empty) {
+        empty = !enif_get_list_cell(env, term, &head, &tail);
+        float value;
+        scitree::nif::get(env, head, &value);
 
-      if (!empty) {
-
-        if (idx_type == proto::ColumnType::NUMERICAL) {
-          float value;
-          scitree::nif::get(env, head, &value);
+        if (!empty) {
           ds::UpdateNumericalColumnSpec(value, col, col_acc);
-        } else if (idx_type == proto::ColumnType::CATEGORICAL) {
-          int32_t value;
-          scitree::nif::get(env, head, &value);
-          ds::UpdateCategoricalIntColumnSpec(value, col, col_acc);
+          term = tail;
         }
+      }
+    } else if (idx_type == proto::ColumnType::CATEGORICAL) {
+      while (!empty) {
+        empty = !enif_get_list_cell(env, term, &head, &tail);
+        int32_t value;
+        scitree::nif::get(env, head, &value);
 
-        term = tail;
+        if (!empty) {
+          ds::UpdateCategoricalIntColumnSpec(value, col, col_acc);
+          term = tail;
+        }
       }
     }
   }
@@ -171,7 +176,7 @@ scitree::nif::SCITREE_ERROR load_dataset(
         empty = !enif_get_list_cell(env, term, &head, &tail);
 
         if (!empty) {
-	  rec_count++;
+	        rec_count++;
           int32_t value;
           scitree::nif::get(env, head, &value);
 
