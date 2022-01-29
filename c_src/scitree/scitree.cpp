@@ -78,9 +78,6 @@ static ERL_NIF_TERM train(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
     return scitree::nif::error(env, error_dataset.reason.c_str());
   }
 
-  LOG(INFO) << "Training dataset:\n"
-            << ygg::dataset::PrintHumanReadable(dataset.data_spec(), false);
-
   // Config leaener
   std::unique_ptr<ygg::model::AbstractLearner> learner;
   GetLearner(train_config, &learner);
@@ -180,9 +177,24 @@ static ERL_NIF_TERM save(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
   return scitree::nif::ok(env);
 }
 
+static ERL_NIF_TERM show_dataspec(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
+  ygg::model::AbstractModel **p_model;
+
+  if (!enif_get_resource(env, argv[0], RES_TYPE, (void **)&p_model)) {
+    return scitree::nif::error(env, "Unable to load resource.");
+  }
+
+  std::string data_spec = ygg::dataset::PrintHumanReadable((**p_model).data_spec(), false);
+  ERL_NIF_TERM spec_str = enif_make_string(env, data_spec.c_str(), ERL_NIF_LATIN1);
+
+  return enif_make_tuple2(env, scitree::nif::ok(env), spec_str);
+}
+
 static ErlNifFunc nif_funcs[] = {
     {"train", 2, train},
     {"predict", 2, predict},
-    {"save", 2, save}};
+    {"save", 2, save},
+    {"show_dataspec", 1, show_dataspec}
+};
 
 ERL_NIF_INIT(Elixir.Scitree.Native, nif_funcs, &load, NULL, NULL, NULL)

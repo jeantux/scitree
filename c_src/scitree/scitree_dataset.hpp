@@ -187,7 +187,7 @@ scitree::nif::SCITREE_ERROR load_dataset(
           term = tail;
         }
       }
-    } else {
+    } else if (idx_type == proto::ColumnType::NUMERICAL) {
       auto* col_num = dataset->MutableColumnWithCast<ds::VerticalDataset::NumericalColumn>(col_idx);
 
       while (!empty) {
