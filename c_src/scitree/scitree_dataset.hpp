@@ -171,6 +171,7 @@ scitree::nif::SCITREE_ERROR load_dataset(
         empty = !enif_get_list_cell(env, term, &head, &tail);
 
         if (!empty) {
+	  rec_count++;
           int32_t value;
           scitree::nif::get(env, head, &value);
 

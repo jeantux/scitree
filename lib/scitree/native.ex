@@ -17,4 +17,8 @@ defmodule Scitree.Native do
   def save(_reference, _path) do
     raise "NIF save/2 not loaded"
   end
+
+  def show_dataspec(_reference) do
+    raise "NIF show_dataspec/1 not loaded"
+  end
 end

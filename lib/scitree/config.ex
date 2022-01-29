@@ -6,7 +6,7 @@ defmodule Scitree.Config do
   @options %{
     maximum_model_size_in_memory_in_bytes: -1.0,
     maximum_training_duration_seconds: -1.0,
-    random_seed: 123456
+    random_seed: 123_456
   }
 
   defstruct learner: :random_forest,
@@ -37,7 +37,6 @@ defmodule Scitree.Config do
   """
 
   def init(), do: %__MODULE__{}
-
 
   @doc """
   This function defines which sorting method will be used and its options.
