@@ -30,15 +30,8 @@ static std::unordered_map<std::string, proto::ColumnType>
       const spec_types = {
           {"unknown", proto::ColumnType::UNKNOWN},
           {"numerical", proto::ColumnType::NUMERICAL},
-          {"numerical_set", proto::ColumnType::NUMERICAL_SET},
-          {"numerical_list", proto::ColumnType::NUMERICAL_LIST},
           {"categorical", proto::ColumnType::CATEGORICAL},
-          {"categorical_set", proto::ColumnType::CATEGORICAL_SET},
-          {"categorical_list", proto::ColumnType::CATEGORICAL_LIST},
-          {"boolean", proto::ColumnType::BOOLEAN},
           {"string", proto::ColumnType::STRING},
-          {"discretized_numerical", proto::ColumnType::DISCRETIZED_NUMERICAL},
-          {"hash", proto::ColumnType::HASH}
       };
 
 scitree::nif::SCITREE_ERROR load_data_spec(
@@ -62,14 +55,20 @@ scitree::nif::SCITREE_ERROR load_data_spec(
     column = data_spec->add_columns();
     column->set_name(name);
 
-    auto col_type = spec_types.find(type);
-    if (col_type != spec_types.end()) {
-      column->set_type(col_type->second);
+    if (type == "string") {
+      column->set_type(proto::ColumnType::CATEGORICAL);
+    } else if (type == "categorical") {
+      column->set_type(proto::ColumnType::CATEGORICAL);
+      column->mutable_categorical()->set_is_already_integerized(true);
     } else {
-      error.status = true;
-      error.reason = "type not identified to column " + name;
+      auto col_type = spec_types.find(type);
+      if (col_type != spec_types.end()) {
+          column->set_type(col_type->second);
+      } else {
+        error.status = true;
+        error.reason = "type not identified to column " + name;
+      }
     }
-
   }
 
   std::sort(data_spec->mutable_columns()->begin(),
@@ -117,7 +116,7 @@ scitree::nif::SCITREE_ERROR load_dataset(
     auto* col = dataset->mutable_data_spec()->mutable_columns(i);
     auto* col_acc = accumulator.mutable_columns(i);
 
-    if (idx_type == proto::ColumnType::NUMERICAL) {
+    if (type == "numerical") {
       while (!empty) {
         empty = !enif_get_list_cell(env, term, &head, &tail);
         float value;
@@ -128,7 +127,7 @@ scitree::nif::SCITREE_ERROR load_dataset(
           term = tail;
         }
       }
-    } else if (idx_type == proto::ColumnType::CATEGORICAL) {
+    } else if (type == "categorical") {
       while (!empty) {
         empty = !enif_get_list_cell(env, term, &head, &tail);
         int32_t value;
@@ -139,8 +138,21 @@ scitree::nif::SCITREE_ERROR load_dataset(
           term = tail;
         }
       }
+    } else if (type == "string") {
+      while (!empty) {
+        empty = !enif_get_list_cell(env, term, &head, &tail);
+        std::string value;
+        scitree::nif::get(env, head, value);
+
+        if (!empty) {
+          ds::UpdateCategoricalStringColumnSpec(value, col, col_acc);
+          term = tail;
+        }
+      }
     }
   }
+
+  ds::FinalizeComputeSpec({}, accumulator, dataset->mutable_data_spec());
 
   // Add values in dataset
   int rec_count = 0;
@@ -167,7 +179,7 @@ scitree::nif::SCITREE_ERROR load_dataset(
     
     const int col_idx = ds::GetColumnIdxFromName(name, dataset->data_spec());
 
-    if (idx_type == proto::ColumnType::CATEGORICAL) {
+    if (type == "categorical") {
       const auto& col_spec = dataset->data_spec().columns(i);
       auto* col_data = dataset->MutableColumnWithCast<ds::VerticalDataset::CategoricalColumn>(col_idx);
       col_data->Resize(0);
@@ -176,7 +188,7 @@ scitree::nif::SCITREE_ERROR load_dataset(
         empty = !enif_get_list_cell(env, term, &head, &tail);
 
         if (!empty) {
-	        rec_count++;
+          rec_count++;
           int32_t value;
           scitree::nif::get(env, head, &value);
 
@@ -193,7 +205,7 @@ scitree::nif::SCITREE_ERROR load_dataset(
           term = tail;
         }
       }
-    } else if (idx_type == proto::ColumnType::NUMERICAL) {
+    } else if (type == "numerical") {
       auto* col_num = dataset->MutableColumnWithCast<ds::VerticalDataset::NumericalColumn>(col_idx);
 
       while (!empty) {
@@ -206,6 +218,29 @@ scitree::nif::SCITREE_ERROR load_dataset(
           scitree::nif::get(env, head, &value);
 
           col_num->Add(value);
+        }
+
+        term = tail;
+      }
+    } else if (type == "string") {
+      const auto& col_spec = dataset->data_spec().columns(i);
+      auto* col_data = dataset->MutableColumnWithCast<ds::VerticalDataset::CategoricalColumn>(col_idx);
+      col_data->Resize(0);
+      while (!empty) {
+        empty = !enif_get_list_cell(env, term, &head, &tail);
+
+        if (!empty) {
+          rec_count ++;
+
+          std::string value;
+          scitree::nif::get(env, head, value);
+
+          if (value.empty()) {
+            col_data->AddNA();
+          } else {
+            col_data->Add(ds::CategoricalStringToValue(value, col_spec));
+          }
+
         }
 
         term = tail;
