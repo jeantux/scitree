@@ -53,7 +53,7 @@ defmodule Scitree do
 
   ## Examples
 
-      iex> Scitree.predict(ref)
+      iex> Scitree.show_dataspec(ref)
       Number of records: 344
       Number of columns: 8
       ...
