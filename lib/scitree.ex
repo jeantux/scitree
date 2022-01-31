@@ -1,10 +1,11 @@
 defmodule Scitree do
-  alias Scitree.Native
-
   @moduledoc """
   Bindings to Yggdrasil Decision Forests (YDF), with a
   collection of decision forest model algorithms.
   """
+
+  alias Scitree.Native
+  alias Scitree.Infer
 
   @doc """
   Train a model using the scitree config and a dataset.
@@ -17,7 +18,10 @@ defmodule Scitree do
       {:ok, #Reference<0.492951156.1600258049.14622>}
 
   """
-  def train(config, data), do: Native.train(config, data)
+  def train(config, data) do
+    data = Infer.execute(data)
+    Native.train(config, data)
+  end
 
   @doc """
   Apply the model to a dataset.
