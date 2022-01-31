@@ -119,10 +119,10 @@ scitree::nif::SCITREE_ERROR load_dataset(
     if (type == "numerical") {
       while (!empty) {
         empty = !enif_get_list_cell(env, term, &head, &tail);
-        float value;
-        scitree::nif::get(env, head, &value);
 
         if (!empty) {
+          float value;
+          scitree::nif::get(env, head, &value);
           ds::UpdateNumericalColumnSpec(value, col, col_acc);
           term = tail;
         }
@@ -130,10 +130,10 @@ scitree::nif::SCITREE_ERROR load_dataset(
     } else if (type == "categorical") {
       while (!empty) {
         empty = !enif_get_list_cell(env, term, &head, &tail);
-        int32_t value;
-        scitree::nif::get(env, head, &value);
 
         if (!empty) {
+          int32_t value;
+          scitree::nif::get(env, head, &value);
           ds::UpdateCategoricalIntColumnSpec(value, col, col_acc);
           term = tail;
         }
@@ -141,10 +141,10 @@ scitree::nif::SCITREE_ERROR load_dataset(
     } else if (type == "string") {
       while (!empty) {
         empty = !enif_get_list_cell(env, term, &head, &tail);
-        std::string value;
-        scitree::nif::get(env, head, value);
 
         if (!empty) {
+          std::string value;
+          scitree::nif::get(env, head, value);
           ds::UpdateCategoricalStringColumnSpec(value, col, col_acc);
           term = tail;
         }
