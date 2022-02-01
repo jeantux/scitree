@@ -101,8 +101,7 @@ scitree::nif::SCITREE_ERROR load_dataset(
     enif_get_tuple(env, tuple[i], &size_dataset, &tuple_dataset);
     scitree::nif::get(env, tuple_dataset[0], name);
     scitree::nif::get_atom(env, tuple_dataset[1], type);
-    
-    int empty = 0;
+
     ERL_NIF_TERM head, tail;
     ERL_NIF_TERM term = tuple_dataset[2];
 
@@ -110,6 +109,16 @@ scitree::nif::SCITREE_ERROR load_dataset(
     if (col_type == spec_types.end()) {
       error.status = true;
       error.reason = "type not identified to column " + name;
+      return error;
+    }
+
+    unsigned int length = 0;
+
+    if (!enif_get_list_length(env, term, &length)) 
+    {
+      error.status = true;
+      error.reason = "Unable get size of data.";
+      return error;
     }
 
     int idx_type = col_type->second;
@@ -117,37 +126,43 @@ scitree::nif::SCITREE_ERROR load_dataset(
     auto* col_acc = accumulator.mutable_columns(i);
 
     if (type == "numerical") {
-      while (!empty) {
-        empty = !enif_get_list_cell(env, term, &head, &tail);
-
-        if (!empty) {
-          float value;
-          scitree::nif::get(env, head, &value);
-          ds::UpdateNumericalColumnSpec(value, col, col_acc);
-          term = tail;
+      for (unsigned int i = 0; i < length; ++i) {
+        if(!enif_get_list_cell(env, term, &head, &tail)) {
+          error.status = true;
+          error.reason = "Fail to get value to column " + name;
+          return error;
         }
+
+        float value;
+        scitree::nif::get(env, head, &value);
+        ds::UpdateNumericalColumnSpec(value, col, col_acc);
+        term = tail;
       }
     } else if (type == "categorical") {
-      while (!empty) {
-        empty = !enif_get_list_cell(env, term, &head, &tail);
-
-        if (!empty) {
-          int32_t value;
-          scitree::nif::get(env, head, &value);
-          ds::UpdateCategoricalIntColumnSpec(value, col, col_acc);
-          term = tail;
+      for (unsigned int i = 0; i < length; ++i) {
+        if(!enif_get_list_cell(env, term, &head, &tail)) {
+          error.status = true;
+          error.reason = "Fail to get value to column " + name;
+          return error;
         }
+
+        int32_t value;
+        scitree::nif::get(env, head, &value);
+        ds::UpdateCategoricalIntColumnSpec(value, col, col_acc);
+        term = tail;
       }
     } else if (type == "string") {
-      while (!empty) {
-        empty = !enif_get_list_cell(env, term, &head, &tail);
-
-        if (!empty) {
-          std::string value;
-          scitree::nif::get(env, head, value);
-          ds::UpdateCategoricalStringColumnSpec(value, col, col_acc);
-          term = tail;
+      for (unsigned int i = 0; i < length; ++i) {
+        if(!enif_get_list_cell(env, term, &head, &tail)) {
+          error.status = true;
+          error.reason = "Fail to get value to column " + name;
+          return error;
         }
+
+        std::string value;
+        scitree::nif::get(env, head, value);
+        ds::UpdateCategoricalStringColumnSpec(value, col, col_acc);
+        term = tail;
       }
     }
   }
@@ -155,9 +170,8 @@ scitree::nif::SCITREE_ERROR load_dataset(
   ds::FinalizeComputeSpec({}, accumulator, dataset->mutable_data_spec());
 
   // Add values in dataset
-  int rec_count = 0;
+  unsigned int rec_count = 0;
   for (int i = 0; i < column_size; i++) {
-    rec_count = 0;
     std::string name, type;
     int size_dataset = 0;
     ERL_NIF_TERM* tuple_dataset;
@@ -166,17 +180,27 @@ scitree::nif::SCITREE_ERROR load_dataset(
     scitree::nif::get(env, tuple_dataset[0], name);
     scitree::nif::get_atom(env, tuple_dataset[1], type);
 
-    int empty = 0;
     ERL_NIF_TERM head, tail;
     ERL_NIF_TERM term = tuple_dataset[2];
     auto col_type = spec_types.find(type);
     if (col_type == spec_types.end()) {
       error.status = true;
       error.reason = "type not identified to column " + name;
+      return error;
     }
 
+    unsigned int length = 0;
+
+    if (!enif_get_list_length(env, term, &length)) 
+    {
+      error.status = true;
+      error.reason = "Unable get size of data.";
+      return error;
+    }
+
+    rec_count = length;
+
     int idx_type = col_type->second;
-    
     const int col_idx = ds::GetColumnIdxFromName(name, dataset->data_spec());
 
     if (type == "categorical") {
@@ -184,63 +208,63 @@ scitree::nif::SCITREE_ERROR load_dataset(
       auto* col_data = dataset->MutableColumnWithCast<ds::VerticalDataset::CategoricalColumn>(col_idx);
       col_data->Resize(0);
 
-      while (!empty) {
-        empty = !enif_get_list_cell(env, term, &head, &tail);
-
-        if (!empty) {
-          rec_count++;
-          int32_t value;
-          scitree::nif::get(env, head, &value);
-
-          if (value < ds::VerticalDataset::CategoricalColumn::kNaValue) {
-            // Treated as missing value.
-            value = ds::VerticalDataset::CategoricalColumn::kNaValue;
-          }
-          if (value >= col_spec.categorical().number_of_unique_values()) {
-            // Treated as out-of-dictionary.
-            value = 0;
-          }
-          col_data->Add(value);
-
-          term = tail;
+      for (unsigned int i = 0; i < length; ++i) {
+        if(!enif_get_list_cell(env, term, &head, &tail)) {
+          error.status = true;
+          error.reason = "Fail to get value to column " + name;
+          return error;
         }
+
+        int32_t value;
+        scitree::nif::get(env, head, &value);
+
+        if (value < ds::VerticalDataset::CategoricalColumn::kNaValue) {
+          // Treated as missing value.
+          value = ds::VerticalDataset::CategoricalColumn::kNaValue;
+        }
+        if (value >= col_spec.categorical().number_of_unique_values()) {
+          // Treated as out-of-dictionary.
+          value = 0;
+        }
+        col_data->Add(value);
+
+        term = tail;
       }
     } else if (type == "numerical") {
       auto* col_num = dataset->MutableColumnWithCast<ds::VerticalDataset::NumericalColumn>(col_idx);
 
-      while (!empty) {
-        empty = !enif_get_list_cell(env, term, &head, &tail);
-
-        if (!empty) {
-          rec_count ++;
-
-          float value;
-          scitree::nif::get(env, head, &value);
-
-          col_num->Add(value);
+      for (unsigned int i = 0; i < length; ++i) {
+        if(!enif_get_list_cell(env, term, &head, &tail)) {
+          error.status = true;
+          error.reason = "Fail to get value to column " + name;
+          return error;
         }
 
+        float value;
+        scitree::nif::get(env, head, &value);
+
+        col_num->Add(value);
         term = tail;
       }
     } else if (type == "string") {
       const auto& col_spec = dataset->data_spec().columns(i);
       auto* col_data = dataset->MutableColumnWithCast<ds::VerticalDataset::CategoricalColumn>(col_idx);
       col_data->Resize(0);
-      while (!empty) {
-        empty = !enif_get_list_cell(env, term, &head, &tail);
 
-        if (!empty) {
-          rec_count ++;
+      for (unsigned int i = 0; i < length; ++i) {
+        if(!enif_get_list_cell(env, term, &head, &tail)) {
+          error.status = true;
+          error.reason = "Fail to get value to column " + name;
+          return error;
+        }
 
-          std::string value;
-          scitree::nif::get(env, head, value);
+        std::string value;
+        scitree::nif::get(env, head, value);
 
-          if (value.empty()) {
-            col_data->AddNA();
-          } else {
-            col_data->Add(ds::CategoricalStringToValue(value, col_spec));
-          }
-
+        if (value.empty()) {
+          col_data->AddNA();
+        } else {
+          col_data->Add(ds::CategoricalStringToValue(value, col_spec));
         }
 
         term = tail;
