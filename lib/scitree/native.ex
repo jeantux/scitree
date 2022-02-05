@@ -1,4 +1,6 @@
 defmodule Scitree.Native do
+  @moduledoc false
+
   @on_load :load_nifs
 
   def load_nifs() do
@@ -6,19 +8,11 @@ defmodule Scitree.Native do
     :erlang.load_nif(path, 0)
   end
 
-  def train(_config, _path) do
-    raise "NIF train/2 not loaded"
-  end
+  def train(_config, _path), do: :erlang.nif_error(:undef)
 
-  def predict(_reference, _model) do
-    raise "NIF predict/2 not loaded"
-  end
+  def predict(_reference, _model), do: :erlang.nif_error(:undef)
 
-  def save(_reference, _path) do
-    raise "NIF save/2 not loaded"
-  end
+  def save(_reference, _path), do: :erlang.nif_error(:undef)
 
-  def show_dataspec(_reference) do
-    raise "NIF show_dataspec/1 not loaded"
-  end
+  def show_dataspec(_reference), do: :erlang.nif_error(:undef)
 end
