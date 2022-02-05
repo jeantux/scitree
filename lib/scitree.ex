@@ -6,6 +6,11 @@ defmodule Scitree do
 
   alias Scitree.Native
   alias Scitree.Infer
+  alias Scitree.Validations, as: Val
+
+  @train_validations [:label, :dataset_size]
+
+  @pred_validations [:dataset_size]
 
   @doc """
   Train a model using the scitree config and a dataset.
@@ -20,7 +25,20 @@ defmodule Scitree do
   """
   def train(config, data) do
     data = Infer.execute(data)
-    Native.train(config, data)
+
+    case Val.validate(data, config, @train_validations) do
+      :ok ->
+        case Native.train(config, data) do
+          {:ok, ref} ->
+            {:ok, ref}
+
+          {:error, reason} ->
+            {:error, List.to_string(reason)}
+        end
+
+      error ->
+        error
+    end
   end
 
   @doc """
@@ -40,9 +58,17 @@ defmodule Scitree do
 
   """
   def predict(reference, data) do
-    case Native.predict(reference, data) do
-      {:ok, results, chunk_size} ->
-        {:ok, Enum.chunk_every(results, chunk_size)}
+    data = Infer.execute(data)
+
+    case Val.validate(data, @pred_validations) do
+      :ok ->
+        case Native.predict(reference, data) do
+          {:ok, results, chunk_size} ->
+            {:ok, Enum.chunk_every(results, chunk_size)}
+
+          {:error, reason} ->
+            {:error, List.to_string(reason)}
+        end
 
       error ->
         error
@@ -70,8 +96,8 @@ defmodule Scitree do
         |> List.to_string()
         |> IO.write()
 
-      error ->
-        error
+      {:error, reason} ->
+        {:error, List.to_string(reason)}
     end
   end
 end
