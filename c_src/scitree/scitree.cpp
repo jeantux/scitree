@@ -2,15 +2,9 @@
 #include "./scitree_dataset.hpp"
 #include "./scitree_learner.hpp"
 
-#include "absl/flags/flag.h"
-#include "yggdrasil_decision_forests/utils/filesystem.h"
 #include "yggdrasil_decision_forests/dataset/data_spec.pb.h"
-#include "yggdrasil_decision_forests/utils/logging.h"
 #include "yggdrasil_decision_forests/dataset/data_spec.h"
-#include "yggdrasil_decision_forests/dataset/data_spec_inference.h"
 #include "yggdrasil_decision_forests/dataset/vertical_dataset_io.h"
-#include "yggdrasil_decision_forests/metric/metric.h"
-#include "yggdrasil_decision_forests/metric/report.h"
 #include "yggdrasil_decision_forests/model/model_library.h"
 
 #include <map>
@@ -35,6 +29,14 @@ static int open_resource(ErlNifEnv *env) {
 }
 
 static int load(ErlNifEnv *env, void **priv, ERL_NIF_TERM load_info) {
+  absl::SetFlag(&FLAGS_alsologtostderr, false);
+  if (open_resource(env) == -1)
+    return -1;
+
+  return 0;
+}
+
+static int reload(ErlNifEnv *env, void **priv, ERL_NIF_TERM load_info) {
   absl::SetFlag(&FLAGS_alsologtostderr, false);
   if (open_resource(env) == -1)
     return -1;
@@ -197,4 +199,4 @@ static ErlNifFunc nif_funcs[] = {
     {"show_dataspec", 1, show_dataspec}
 };
 
-ERL_NIF_INIT(Elixir.Scitree.Native, nif_funcs, &load, NULL, NULL, NULL)
+ERL_NIF_INIT(Elixir.Scitree.Native, nif_funcs, &load, &reload, NULL, NULL)
