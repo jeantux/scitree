@@ -100,4 +100,29 @@ defmodule Scitree do
         {:error, List.to_string(reason)}
     end
   end
+
+  @doc """
+  Save the model in a directory.
+
+  The directory must not yet exist and will be created by
+  this function.
+
+  ## Examples
+
+      iex> Scitree.save(ref, "/home/user/")
+      :ok
+  """
+  def save(ref, path) do
+    if File.dir?(path) do
+      {:error, "The directory already exists"}
+    else
+      case Scitree.Native.save(ref, path) do
+        :ok ->
+          :ok
+
+        {:error, reason} ->
+          {:error, List.to_string(reason)}
+      end
+    end
+  end
 end
