@@ -1,11 +1,13 @@
 #include "./scitree_nif_helper.hpp"
 #include "./scitree_dataset.hpp"
 #include "./scitree_learner.hpp"
+#include "./scitree_report.hpp"
 
 #include "yggdrasil_decision_forests/dataset/data_spec.pb.h"
 #include "yggdrasil_decision_forests/dataset/data_spec.h"
 #include "yggdrasil_decision_forests/dataset/vertical_dataset_io.h"
 #include "yggdrasil_decision_forests/model/model_library.h"
+#include "yggdrasil_decision_forests/metric/metric.pb.h"
 
 #include <map>
 #include <vector>
@@ -149,6 +151,17 @@ static ERL_NIF_TERM predict(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
   int batch_size = batch_of_predictions.size();
   int qtt_category_types = trunc(batch_size / num_row);
 
+  // evaluate
+  ygg::utils::RandomEngine rnd;
+  ygg::metric::proto::EvaluationOptions evaluation_options;
+  evaluation_options.set_task((**p_model).task());
+
+  const ygg::metric::proto::EvaluationResults evaluation =
+      (**p_model).Evaluate(dataset_predit, evaluation_options, &rnd);
+  
+  ERL_NIF_TERM report;
+  scitree::report::prepare(env, &report, &evaluation);
+ 
   ERL_NIF_TERM predictions[batch_size];
   int i = 0;
   for (float const &predict : batch_of_predictions) {
@@ -158,7 +171,7 @@ static ERL_NIF_TERM predict(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
   ERL_NIF_TERM chunk = enif_make_int(env, qtt_category_types);
   ERL_NIF_TERM list = enif_make_list_from_array(env, predictions, batch_of_predictions.size());
 
-  return enif_make_tuple3(env, scitree::nif::ok(env), list, chunk);
+  return enif_make_tuple4(env, scitree::nif::ok(env), list, chunk, report);
 }
 
 static ERL_NIF_TERM save(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {

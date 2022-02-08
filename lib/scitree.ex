@@ -63,8 +63,9 @@ defmodule Scitree do
     case Val.validate(data, @pred_validations) do
       :ok ->
         case Native.predict(reference, data) do
-          {:ok, results, chunk_size} ->
-            {:ok, Enum.chunk_every(results, chunk_size)}
+          {:ok, results, chunk_size, evaluate} ->
+            predictions = Enum.chunk_every(results, chunk_size)
+            {:ok, predictions, evaluate}
 
           {:error, reason} ->
             {:error, List.to_string(reason)}
