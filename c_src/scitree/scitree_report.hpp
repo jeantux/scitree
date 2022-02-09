@@ -6,7 +6,6 @@
 #include "yggdrasil_decision_forests/metric/metric.pb.h"
 #include "yggdrasil_decision_forests/utils/distribution.h"
 
-
 #include <string.h>
 #include <erl_nif.h>
 
@@ -47,14 +46,15 @@ void prepare(
     keys[6] = enif_make_atom(env, "number_predictions");
     values[6] = enif_make_double(env, evaluation->count_predictions());
 
-    // confusion table
-    std::string confusion_table = "";
-    ygg::utils::IntegersConfusionMatrixDouble confusion;
-    confusion.Load(evaluation->classification().confusion());
-    confusion.AppendTextReport(evaluation->label_column(), &confusion_table);
+    int nuv = evaluation->label_column().categorical().number_of_unique_values();
+    ERL_NIF_TERM cols_rep[nuv];
+    for (int index = 0; index < nuv; index++) {
+	std::string col = ygg::dataset::CategoricalIdxToRepresentation(evaluation->label_column(), index);
+	cols_rep[index] = enif_make_string(env, col.c_str(), ERL_NIF_LATIN1);
+    }
 
-    keys[7] = enif_make_atom(env, "confusion_table");
-    values[7] = enif_make_string(env, confusion_table.c_str(), ERL_NIF_LATIN1);
+    keys[7] = enif_make_atom(env, "cols_representation");
+    values[7] = enif_make_list_from_array(env, cols_rep, nuv);
 
     enif_make_map_from_arrays(env, keys, values, size, report);
 }
