@@ -1,5 +1,4 @@
 defmodule Scitree.Infer do
-
   @doc """
   Returns a tuple with the title, type and data.
 

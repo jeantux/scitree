@@ -7,6 +7,7 @@ defmodule Scitree do
   alias Scitree.Native
   alias Scitree.Infer
   alias Scitree.Validations, as: Val
+  alias Scitree.Metrics
 
   @train_validations [:label, :dataset_size]
 
@@ -51,10 +52,20 @@ defmodule Scitree do
       iex> Scitree.predict(ref, data)
       {:ok,
         [
-          [0.9999991655349731, 0.0, 0.0],
-          [0.01666666753590107, 0.05000000447034836, 0.9333325624465942],
-          [0.013333333656191826, 0.09333331137895584, 0.8933326005935669]
-        ]}
+          [0.2366665154695511, 0.0, 0.763332724571228],
+          [0.2366665154695511, 0.0, 0.763332724571228],
+          [0.0, 0.9999991655349731, 0.0]
+        ],
+        %Scitree.Metrics{
+          accuracy: 0.6666666865348816,
+          cols_representation: ['<OOD>', 'Adelie', 'Gentoo', 'Chinstrap'],
+          default_accuracy: 0.6666666865348816,
+          default_error_rate: 0.3333333134651184,
+          default_loss: 0.6365141868591309,
+          error_rate: 0.3333333134651184,
+          loss: 0.5703876614570618,
+          number_predictions: 3.0
+        }}
 
   """
   def predict(reference, data) do
@@ -63,9 +74,10 @@ defmodule Scitree do
     case Val.validate(data, @pred_validations) do
       :ok ->
         case Native.predict(reference, data) do
-          {:ok, results, chunk_size, evaluate} ->
+          {:ok, results, chunk_size, metrics} ->
             predictions = Enum.chunk_every(results, chunk_size)
-            {:ok, predictions, evaluate}
+            metrics = Metrics.init(metrics)
+            {:ok, predictions, metrics}
 
           {:error, reason} ->
             {:error, List.to_string(reason)}
