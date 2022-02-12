@@ -34,6 +34,10 @@ defmodule Scitree.Validations do
 
   defp get_validator(:dataset_size), do: &validate_dataset_size/2
 
+  defp get_validator(:learner), do: &validate_config_learner/2
+  
+  defp get_validator(:task), do: &validate_task/2
+
   defp get_validator(name), do: {:error, "validate_#{name} is not support"}
 
   @doc """
@@ -50,7 +54,7 @@ defmodule Scitree.Validations do
   def validate_label(data, %{label: label}) do
     data
     |> Tuple.to_list()
-    |> Enum.any?(fn {title, _value, _} -> title == label end)
+    |> Enum.any?(fn {title, _type, _value} -> title == label end)
     |> get_result("label not identified")
   end
 
@@ -71,6 +75,58 @@ defmodule Scitree.Validations do
     |> Tuple.to_list()
     |> Enum.all?(fn {_title, _type, vals} -> Enum.count(vals) == size end)
     |> get_result("columns with different sizes")
+  end
+
+  @doc """
+  Checks if config learner is valid.
+
+  ## Examples
+
+      iex> Scitree.Validations.validate_config_learner(data, config)
+      {:error, "The learner is either non-existing or non registered"}
+  """
+  def validate_config_learner(_data, config) do
+    [:cart, :gradient_boosted_trees, :random_forest]
+    |> Enum.member?(config.learner)
+    |> get_result(" The learner is either non-existing or non registered")
+  end
+
+  @doc """
+  Check if the task config is compatible with the type of the
+  dataset's label column.
+
+  ## Examples
+
+      iex> Scitree.Validations.validate_task(data, config)
+      {:error, "The label column should be CATEGORICAL for a CLASSIFICATION task"}
+  """
+  def validate_task(data, config) do
+    {_, col_type, _} =
+      data
+      |> Tuple.to_list()
+      |> Enum.find(fn {title, _type, _value} -> title == config.label end)
+
+    check_type_task(col_type, config.task)
+  end
+
+  defp check_type_task(col_type, :classification) do
+    valid? = col_type == :categorical
+    get_result(valid?, "The label column should be CATEGORICAL for a CLASSIFICATION task")
+  end
+
+  defp check_type_task(col_type, :regression) do
+    valid? = col_type == :numerical
+    get_result(valid?, "The label column should be NUMERICAL for a REGRESSION task")
+  end
+
+  defp check_type_task(col_type, :ranking) do
+    valid? = col_type == :numerical
+    get_result(valid?, "The label column should be NUMERICAL for a RANKING task")
+  end
+
+  defp check_type_task(col_type, :categorical_uplift) do
+    valid? = col_type == :categorical
+    get_result(valid?, "The label column should be CATEGORICAL for an CATEGORICAL_UPLIFT task.")
   end
 
   @spec get_result(boolean, any) :: :ok | {:error, any}

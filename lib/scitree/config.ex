@@ -1,7 +1,7 @@
 defmodule Scitree.Config do
   @type t :: %__MODULE__{}
 
-  @type learners :: :random_forest | :gradient_boosted_trees
+  @type learners :: :cart | :gradient_boosted_trees | :random_forest
 
   @options %{
     maximum_model_size_in_memory_in_bytes: -1.0,
@@ -9,10 +9,10 @@ defmodule Scitree.Config do
     random_seed: 123_456
   }
 
-  defstruct learner: :random_forest,
+  defstruct learner: :gradient_boosted_trees,
             options: @options,
             task: :classification,
-            label: "scitree",
+            label: "",
             log_directory: ""
 
   @type tasks :: :undefined | :classification | :regression | :ranking | :categorical_uplift
