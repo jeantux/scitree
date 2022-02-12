@@ -163,9 +163,10 @@ static ERL_NIF_TERM predict(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
   scitree::report::prepare(env, &report, &evaluation);
  
   ERL_NIF_TERM predictions[batch_size];
-  int i = 0;
-  for (float const &predict : batch_of_predictions) {
-    predictions[i++] = enif_make_double(env, predict);
+
+  for (int i = 0; i < batch_size; i++) {
+    float predict = batch_of_predictions[batch_size - i];
+    predictions[i] = enif_make_double(env, predict);
   }
 
   ERL_NIF_TERM chunk = enif_make_int(env, qtt_category_types);
