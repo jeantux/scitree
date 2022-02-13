@@ -9,7 +9,7 @@ defmodule Scitree do
   alias Scitree.Validations, as: Val
   alias Scitree.Metrics
 
-  @train_validations [:label, :dataset_size]
+  @train_validations [:label, :dataset_size, :learner, :task]
 
   @pred_validations [:dataset_size]
 
