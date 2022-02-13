@@ -110,7 +110,7 @@ defmodule Scitree.Validations do
   end
 
   defp check_type_task(col_type, :classification) do
-    valid? = col_type == :categorical
+    valid? = col_type in [:categorical, :string]
     get_result(valid?, "The label column should be CATEGORICAL for a CLASSIFICATION task")
   end
 
