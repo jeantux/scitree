@@ -9,8 +9,7 @@ cc_binary(
         "scitree.cpp",
         "scitree_nif_helper.hpp",
         "scitree_dataset.hpp",
-        "scitree_learner.hpp",
-        "scitree_report.hpp",
+        "scitree_learner.hpp"
     ],
     linkopts = ["-shared"],
     copts = [
