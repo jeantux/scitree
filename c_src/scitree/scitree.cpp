@@ -1,7 +1,6 @@
 #include "./scitree_nif_helper.hpp"
 #include "./scitree_dataset.hpp"
 #include "./scitree_learner.hpp"
-#include "./scitree_report.hpp"
 
 #include "yggdrasil_decision_forests/dataset/data_spec.pb.h"
 #include "yggdrasil_decision_forests/dataset/data_spec.h"
@@ -93,6 +92,8 @@ static ERL_NIF_TERM train(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
   learner->SetHyperParameters(scitree::learner::get_hyper_params(config.options));
 
   auto model = learner->TrainWithStatus(dataset).value();
+
+  // prepare resource
   ygg::model::AbstractModel **p_model;
   p_model = (ygg::model::AbstractModel **)enif_alloc_resource(RES_TYPE, sizeof(ygg::model::AbstractModel *));
 
@@ -147,21 +148,9 @@ static ERL_NIF_TERM predict(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
   
   std::vector<float> batch_of_predictions;
   serving_engine->Predict(*examples, num_row, &batch_of_predictions);
-
   int batch_size = batch_of_predictions.size();
   int qtt_category_types = trunc(batch_size / num_row);
 
-  // evaluate
-  ygg::utils::RandomEngine rnd;
-  ygg::metric::proto::EvaluationOptions evaluation_options;
-  evaluation_options.set_task((**p_model).task());
-
-  const ygg::metric::proto::EvaluationResults evaluation =
-      (**p_model).Evaluate(dataset_predit, evaluation_options, &rnd);
-  
-  ERL_NIF_TERM report;
-  scitree::report::prepare(env, &report, &evaluation);
- 
   ERL_NIF_TERM predictions[batch_size];
 
   for (int i = 0; i < batch_size; i++) {
@@ -172,7 +161,7 @@ static ERL_NIF_TERM predict(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
   ERL_NIF_TERM chunk = enif_make_int(env, qtt_category_types);
   ERL_NIF_TERM list = enif_make_list_from_array(env, predictions, batch_of_predictions.size());
 
-  return enif_make_tuple4(env, scitree::nif::ok(env), list, chunk, report);
+  return enif_make_tuple3(env, scitree::nif::ok(env), list, chunk);
 }
 
 static ERL_NIF_TERM save(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
