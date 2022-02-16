@@ -12,6 +12,8 @@ all: $(PROJECT_NAME)
 
 $(PROJECT_NAME):
 		cd ./c_src && \
+		rm -f erlnif/include && \
+		ln -s $(ERTS_INCLUDE_DIR) erlnif/include && \
 		bazel build $(BAZEL_FLAGS) //scitree && \
 		mkdir -p $(PRIV_DIR) && \
 		rm -f $(PRIV_DIR)/scitree.so &&\

@@ -9,6 +9,6 @@ cc_library(
 
     native.new_local_repository(
       name = "erlnif",
-      path = "/path",
+      path = "erlnif/include",
       build_file_content = build_file_content
     )

@@ -24,3 +24,9 @@ scitree-*.tar
 
 # Temporary files, for example, from tests.
 /tmp/
+
+# Bazel folders
+/c_src/bazel-*
+
+# Erlnif
+/c_src/erlnif/include
