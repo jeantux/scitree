@@ -24,8 +24,8 @@ defmodule Scitree.Config do
 
       iex> Scitree.Config.init()
       %Scitree.Config{
-        label: "scitree",
-        learner: :random_forest,
+        label: "",
+        learner: :gradient_boosted_trees,
         log_directory: "",
         options: %{
           maximum_model_size_in_memory_in_bytes: -1.0,
@@ -47,7 +47,7 @@ defmodule Scitree.Config do
 
       iex> Scitree.Config.init() |> Scitree.Config.learner(:random_forest)
       %Scitree.Config{
-        label: "scitree",
+        label: "",
         learner: :random_forest,
         log_directory: "",
         options: %{
@@ -72,7 +72,7 @@ defmodule Scitree.Config do
 
       iex> Scitree.Config.init() |> Scitree.Config.learner(:random_forest, random_seed: 654321)
       %Scitree.Config{
-        label: "scitree",
+        label: "",
         learner: :random_forest,
         log_directory: "",
         options: %{
