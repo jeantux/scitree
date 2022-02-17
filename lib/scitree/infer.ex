@@ -18,7 +18,7 @@ defmodule Scitree.Infer do
     for {title, values} <- data,
         [val | _] = values do
       cond do
-        is_number(val) -> {title, :categorical, values}
+        is_integer(val) -> {title, :categorical, values}
         is_boolean(val) -> {title, :categorical, values}
         is_float(val) -> {title, :numerical, values}
         is_binary(val) -> {title, :string, values}
