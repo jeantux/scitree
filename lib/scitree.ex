@@ -47,7 +47,6 @@ defmodule Scitree do
   in the first argument and as the second argument a valid dataset.
 
   ## Examples
-
       iex> Scitree.predict(ref, data)
       {:ok,
         [
