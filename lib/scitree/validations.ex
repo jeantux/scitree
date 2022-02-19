@@ -35,7 +35,7 @@ defmodule Scitree.Validations do
   defp get_validator(:dataset_size), do: &validate_dataset_size/2
 
   defp get_validator(:learner), do: &validate_config_learner/2
-  
+
   defp get_validator(:task), do: &validate_task/2
 
   defp get_validator(name), do: {:error, "validate_#{name} is not support"}
