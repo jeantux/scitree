@@ -126,4 +126,14 @@ defmodule Scitree do
       end
     end
   end
+
+  @doc """
+  loads a saved training and returns a model reference.
+
+  ## Examples
+
+      iex> Scitree.load("/home/user/")
+      {:ok, #Reference<0.1739393528.1989279747.143562>}
+  """
+  def load(path), do: Scitree.Native.load(path)
 end

@@ -14,5 +14,7 @@ defmodule Scitree.Native do
 
   def save(_reference, _path), do: :erlang.nif_error(:undef)
 
+  def load(_path), do: :erlang.nif_error(:undef)
+
   def show_dataspec(_reference), do: :erlang.nif_error(:undef)
 end

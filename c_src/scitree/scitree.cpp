@@ -182,6 +182,31 @@ static ERL_NIF_TERM save(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
   return scitree::nif::ok(env);
 }
 
+static ERL_NIF_TERM load(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
+  std::string path;
+
+  if (!scitree::nif::get(env, argv[0], path)) {
+    return scitree::nif::error(env, "Unable to get path.");
+  }
+
+  std::unique_ptr<ygg::model::AbstractModel> model;
+
+  LoadModel(path, &model);
+  
+  // prepare resource
+  ygg::model::AbstractModel **p_model;
+  p_model = (ygg::model::AbstractModel **)enif_alloc_resource(RES_TYPE, sizeof(ygg::model::AbstractModel *));
+
+  *p_model = model.release();
+
+  if (*p_model == NULL)
+    return scitree::nif::error(env, "Unable to open resource.");
+
+  ERL_NIF_TERM resource = enif_make_resource(env, p_model);
+
+  return enif_make_tuple2(env, scitree::nif::ok(env), resource);
+}
+
 static ERL_NIF_TERM show_dataspec(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
   ygg::model::AbstractModel **p_model;
 
@@ -199,6 +224,7 @@ static ErlNifFunc nif_funcs[] = {
     {"train", 2, train},
     {"predict", 2, predict},
     {"save", 2, save},
+    {"load", 1, load},
     {"show_dataspec", 1, show_dataspec}
 };
 
