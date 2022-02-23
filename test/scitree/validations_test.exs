@@ -150,7 +150,8 @@ defmodule Scitree.ValidationsTest do
       {"species", :string, ["Chinstrap", "Adelie", "Adelie"]}
     }
 
+    expected = {:error, "validate_non_existent_validator is not support"}
     result = Val.validate(simple_penguins_dataset, [:non_existent_validator])
-    assert result == :ok
+    assert result == expected
   end
 end
