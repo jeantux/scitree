@@ -116,4 +116,41 @@ defmodule Scitree.ValidationsTest do
 
     assert result == :ok
   end
+
+  test "test validate/3, multiples validations" do
+    simple_penguins_dataset = {
+      {"bill_depth_mm", :numerical, [18.7, 15.5, 18.7]},
+      {"island", :string, ["Dream", "Dream", "Torgersen"]},
+      {"year", :categorical, [2009, 2009, 2007]},
+      {"species", :string, ["Chinstrap", "Adelie", "Adelie"]}
+    }
+
+    config = Config.init() |> Config.label("species")
+    opts = [:label, :dataset_size, :learner, :task]
+    result = Val.validate(simple_penguins_dataset, config, opts)
+
+    assert result == :ok
+  end
+
+  test "test validate/2" do
+    simple_penguins_dataset = {
+      {"bill_depth_mm", :numerical, [18.7, 15.5, 18.7]},
+      {"year", :categorical, [2009, 2009, 2007]},
+      {"species", :string, ["Chinstrap", "Adelie", "Adelie"]}
+    }
+
+    opts = [:dataset_size]
+    result = Val.validate(simple_penguins_dataset, opts)
+
+    assert result == :ok
+  end
+
+  test "test non-existent validator" do
+    simple_penguins_dataset = {
+      {"species", :string, ["Chinstrap", "Adelie", "Adelie"]}
+    }
+
+    result = Val.validate(simple_penguins_dataset, [:non_existent_validator])
+    assert result == :ok
+  end
 end

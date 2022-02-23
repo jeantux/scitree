@@ -21,4 +21,18 @@ defmodule Scitree.InferTest do
 
     assert Infer.execute(data) == expected
   end
+
+  test "Inference of dataset with unsupported types" do
+    data = %{
+      species: [%{name: "Chinstrap"}, %{name: "Adelie"}, %{name: "Adelie"}],
+      year: [2009, 2009, 2007]
+    }
+
+    expected = {
+      {"species", :unknown, [%{name: "Chinstrap"}, %{name: "Adelie"}, %{name: "Adelie"}]},
+      {"year", :categorical, [2009, 2009, 2007]}
+    }
+
+    assert Infer.execute(data) == expected
+  end
 end

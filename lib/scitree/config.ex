@@ -98,6 +98,24 @@ defmodule Scitree.Config do
   @spec label(t(), String.t()) :: t()
   def label(config, label), do: Map.put(config, :label, label)
 
+  @doc """
+  Set a directory to save training logs
+
+  ## Examples
+
+      iex> Scitree.Config.init() |> Scitree.Config.log_directory("/path")
+      %Scitree.Config{
+        label: "",
+        learner: :gradient_boosted_trees,
+        log_directory: "/path",
+        options: %{
+          maximum_model_size_in_memory_in_bytes: -1.0,
+          maximum_training_duration_seconds: -1.0,
+          random_seed: 123456
+        },
+        task: :classification
+      }
+  """
   @spec log_directory(t(), String.t()) :: t()
   def log_directory(config, dir), do: Map.put(config, :log_directory, dir)
 end
