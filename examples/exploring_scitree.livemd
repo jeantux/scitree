@@ -1,0 +1,65 @@
+# Exploring Scitree
+
+## Settings
+
+* To facilitate some examples we will use the explorer which is a fantastic library to work with datasets ([See the documentation to configure](https://github.com/elixir-nx/explorer)).
+
+* Scitree is a wrapper over the [yggdrasil](https://github.com/google/yggdrasil-decision-forests) library and has several decision tree algorithms, with which we can perform training in an optimized way.
+
+```elixir
+Mix.install([
+  {:explorer, "~> 0.1.0-dev", github: "elixir-nx/explorer", branch: "main"},
+  {:scitree, "~> 0.1.0", github: "jeantux/scitree", branch: "main"}
+])
+```
+
+### Wine Data Set
+
+For our examples we will use the [Wine Data Set](https://archive.ics.uci.edu/ml/datasets/Wine) and then convert this dataset to map in a format accepted by Scitree.
+
+The first is the `dataset_train` which will be used to train our model and the second is the `dataset_predict` which will be used in our predictions.
+
+For the predictions, 10 samples were randomly selected.
+
+```elixir
+dataset_train =
+  Explorer.Datasets.wine()
+  |> Explorer.DataFrame.to_map()
+
+dataset_predict =
+  Explorer.Datasets.wine()
+  |> Explorer.DataFrame.sample(10)
+  |> Explorer.DataFrame.to_map()
+```
+
+To generate a training, the scitree needs to receive a configuration with guidelines on how the training should be done, more details on configuration options can be found in the `Scitree.Config` module.
+
+Then we pass the settings and our training dataset to `train/2` which returns a status and a reference to the generated model.
+
+```elixir
+config =
+  Scitree.Config.init()
+  |> Scitree.Config.label("class")
+  |> Scitree.Config.learner(:gradient_boosted_trees)
+  |> Scitree.Config.task(:classification)
+
+{:ok, ref} = Scitree.train(config, dataset_train)
+```
+
+A data specification is a list of attribute definitions that indicates how a dataset is semantically understood.
+
+Check the documentation of the `show_dataspec/1` function for more details
+
+```elixir
+Scitree.show_dataspec(ref)
+```
+
+To perform the prediction, just call the function `predict/1`, passing the reference of our model and the desired dataset.
+The function must return a status and a list of predictions.
+
+The class column was removed from our dataset because the idea was to simulate a structure without the column with the results.
+However, if the column with the result is present, internally this removal operation will be performed.
+
+```elixir
+{:ok, predictions} = Scitree.predict(ref, dataset_predict |> Map.delete(:class))
+```
