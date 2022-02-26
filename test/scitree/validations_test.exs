@@ -117,6 +117,23 @@ defmodule Scitree.ValidationsTest do
     assert result == :ok
   end
 
+  test "test non-existing tasks" do
+    simple_penguins_dataset = {
+      {"bill_depth_mm", :numerical, [18.7, 15.5, 18.7]},
+      {"species", :categorical, [1, 2, 2]}
+    }
+
+    config =
+      Config.init()
+      |> Config.task(:unknown)
+      |> Config.label("bill_depth_mm")
+
+    expected = {:error, "The task unknown does not exist"}
+    result = Val.validate_task(simple_penguins_dataset, config)
+
+    assert result == expected
+  end
+
   test "test validate/3, multiples validations" do
     simple_penguins_dataset = {
       {"bill_depth_mm", :numerical, [18.7, 15.5, 18.7]},
