@@ -20,7 +20,7 @@ defmodule Scitree do
   ## Examples
 
       iex> Scitree.Native.train(config, data)
-      {:ok, #Reference<0.492951156.1600258049.14622>}
+      #Reference<0.492951156.1600258049.14622>
 
   """
   def train(config, data) do
@@ -30,14 +30,14 @@ defmodule Scitree do
       :ok ->
         case Native.train(config, data) do
           {:ok, ref} ->
-            {:ok, ref}
+            ref
 
           {:error, reason} ->
-            {:error, List.to_string(reason)}
+            raise List.to_string(reason)
         end
 
-      error ->
-        error
+      {:error, reason} ->
+        raise reason
     end
   end
 
@@ -48,13 +48,11 @@ defmodule Scitree do
 
   ## Examples
       iex> Scitree.predict(ref, data)
-      {:ok,
-        [
-          [0.2366665154695511, 0.0, 0.763332724571228],
-          [0.2366665154695511, 0.0, 0.763332724571228],
-          [0.0, 0.9999991655349731, 0.0]
-        ]
-      }
+      [
+        [0.2366665154695511, 0.0, 0.763332724571228],
+        [0.2366665154695511, 0.0, 0.763332724571228],
+        [0.0, 0.9999991655349731, 0.0]
+      ]
 
   """
   def predict(reference, data) do
@@ -65,14 +63,14 @@ defmodule Scitree do
         case Native.predict(reference, data) do
           {:ok, results, chunk_size} ->
             predictions = Enum.chunk_every(results, chunk_size)
-            {:ok, predictions}
+            predictions
 
           {:error, reason} ->
-            {:error, List.to_string(reason)}
+            raise List.to_string(reason)
         end
 
-      error ->
-        error
+      {:error, reason} ->
+        raise reason
     end
   end
 
@@ -88,17 +86,19 @@ defmodule Scitree do
       Number of records: 344
       Number of columns: 8
       ...
-
+      #Reference<0.1739393528.1989279747.143562>
   """
-  def show_dataspec(reference) do
+  def inspect_dataspec(reference) do
     case Native.show_dataspec(reference) do
       {:ok, result} ->
         result
         |> List.to_string()
         |> IO.write()
 
+        reference
+
       {:error, reason} ->
-        {:error, List.to_string(reason)}
+        raise List.to_string(reason)
     end
   end
 
@@ -111,18 +111,18 @@ defmodule Scitree do
   ## Examples
 
       iex> Scitree.save(ref, "/home/user/")
-      :ok
+      #Reference<0.1739393528.1989279747.143562>
   """
   def save(ref, path) do
     if File.dir?(path) do
-      {:error, "The directory already exists"}
+      raise "The directory already exists"
     else
       case Scitree.Native.save(ref, path) do
         :ok ->
-          :ok
+          ref
 
         {:error, reason} ->
-          {:error, List.to_string(reason)}
+          raise List.to_string(reason)
       end
     end
   end
@@ -133,7 +133,15 @@ defmodule Scitree do
   ## Examples
 
       iex> Scitree.load("/home/user/")
-      {:ok, #Reference<0.1739393528.1989279747.143562>}
+      #Reference<0.1739393528.1989279747.143562>
   """
-  def load(path), do: Scitree.Native.load(path)
+  def load(path) do
+    case Scitree.Native.load(path) do
+      {:ok, ref} ->
+        ref
+
+      {:error, reason} ->
+        raise reason
+    end
+  end
 end

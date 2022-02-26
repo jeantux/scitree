@@ -129,6 +129,10 @@ defmodule Scitree.Validations do
     get_result(valid?, "The label column should be CATEGORICAL for an CATEGORICAL_UPLIFT task.")
   end
 
+  defp check_type_task(_col_type, task) do
+    get_result(false, "The task #{task} does not exist")
+  end
+
   @spec get_result(boolean, any) :: :ok | {:error, any}
   def get_result(true, _reason), do: :ok
 
