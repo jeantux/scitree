@@ -37,21 +37,20 @@ To generate a training, the scitree needs to receive a configuration with guidel
 Then we pass the settings and our training dataset to `train/2` which returns a status and a reference to the generated model.
 
 ```elixir
-config =
+ref =
   Scitree.Config.init()
   |> Scitree.Config.label("class")
-  |> Scitree.Config.learner(:gradient_boosted_trees)
+  |> Scitree.Config.learner(:random_forest)
   |> Scitree.Config.task(:classification)
-
-{:ok, ref} = Scitree.train(config, dataset_train)
+  |> Scitree.train(dataset_train)
 ```
 
 A data specification is a list of attribute definitions that indicates how a dataset is semantically understood.
 
-Check the documentation of the `show_dataspec/1` function for more details
+Check the documentation of the `inspect_dataspec/1` function for more details
 
 ```elixir
-Scitree.show_dataspec(ref)
+Scitree.inspect_dataspec(ref)
 ```
 
 To perform the prediction, just call the function `predict/1`, passing the reference of our model and the desired dataset.
@@ -61,5 +60,5 @@ The class column was removed from our dataset because the idea was to simulate a
 However, if the column with the result is present, internally this removal operation will be performed.
 
 ```elixir
-{:ok, predictions} = Scitree.predict(ref, dataset_predict |> Map.delete(:class))
+Scitree.predict(ref, dataset_train |> Map.delete(:class))
 ```
