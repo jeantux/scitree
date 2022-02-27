@@ -60,5 +60,5 @@ The class column was removed from our dataset because the idea was to simulate a
 However, if the column with the result is present, internally this removal operation will be performed.
 
 ```elixir
-Scitree.predict(ref, dataset_train |> Map.delete(:class))
+Scitree.predict(ref, dataset_predict |> Map.delete(:class))
 ```
