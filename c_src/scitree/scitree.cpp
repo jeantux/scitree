@@ -1,19 +1,19 @@
-#include "./scitree_nif_helper.hpp"
 #include "./scitree_dataset.hpp"
 #include "./scitree_learner.hpp"
+#include "./scitree_nif_helper.hpp"
 
-#include "yggdrasil_decision_forests/dataset/data_spec.pb.h"
 #include "yggdrasil_decision_forests/dataset/data_spec.h"
+#include "yggdrasil_decision_forests/dataset/data_spec.pb.h"
 #include "yggdrasil_decision_forests/dataset/vertical_dataset_io.h"
-#include "yggdrasil_decision_forests/model/model_library.h"
 #include "yggdrasil_decision_forests/metric/metric.pb.h"
+#include "yggdrasil_decision_forests/model/model_library.h"
 
-#include <map>
-#include <vector>
+#include <algorithm>
+#include <cmath>
 #include <cstring>
 #include <erl_nif.h>
-#include <cmath>
-#include <algorithm>
+#include <map>
+#include <vector>
 
 ErlNifResourceType *RES_TYPE;
 
@@ -157,8 +157,12 @@ static ERL_NIF_TERM predict(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 
   int i = 0;
   for (const float prediction : batch_of_predictions) {
-    float predict = std::clamp(prediction, 0.f, 1.f);
-    predictions[i] = enif_make_double(env, predict);
+    if ((**p_model).task() == ygg::model::proto::Task::CLASSIFICATION) {
+      float class_prediction = std::clamp(prediction, 0.f, 1.f);
+      predictions[i] = enif_make_double(env, class_prediction);
+    } else {
+      predictions[i] = enif_make_double(env, prediction);
+    }
     i++;
   }
 
