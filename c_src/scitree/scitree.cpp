@@ -13,6 +13,7 @@
 #include <cstring>
 #include <erl_nif.h>
 #include <cmath>
+#include <algorithm>
 
 ErlNifResourceType *RES_TYPE;
 
@@ -144,7 +145,8 @@ static ERL_NIF_TERM predict(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
       serving_engine->AllocateExamples(num_row);
 
   ygg::serving::CopyVerticalDatasetToAbstractExampleSet(
-      dataset_predit, 0, num_row -1, features, examples.get());
+      dataset_predit, 0, num_row -1, features, examples.get()
+  );
   
   std::vector<float> batch_of_predictions;
   serving_engine->Predict(*examples, num_row, &batch_of_predictions);
@@ -153,9 +155,11 @@ static ERL_NIF_TERM predict(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 
   ERL_NIF_TERM predictions[batch_size];
 
-  for (int i = 0; i < batch_size; i++) {
-    float predict = batch_of_predictions[batch_size - i];
+  int i = 0;
+  for (const float prediction : batch_of_predictions) {
+    float predict = std::clamp(prediction, 0.f, 1.f);
     predictions[i] = enif_make_double(env, predict);
+    i++;
   }
 
   ERL_NIF_TERM chunk = enif_make_int(env, qtt_category_types);
