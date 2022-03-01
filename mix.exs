@@ -8,7 +8,7 @@ defmodule Scitree.MixProject do
       elixir: "~> 1.13",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      compilers: [:elixir_make] ++ Mix.compilers,
+      compilers: [:elixir_make] ++ Mix.compilers()
     ]
   end
 
@@ -22,7 +22,8 @@ defmodule Scitree.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:elixir_make, "~> 0.4", runtime: false}
+      {:elixir_make, "~> 0.4", runtime: false},
+      {:nx, "~> 0.1"}
     ]
   end
 end
