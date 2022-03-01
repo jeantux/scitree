@@ -7,7 +7,6 @@ defmodule Scitree do
   alias Scitree.Native
   alias Scitree.Infer
   alias Scitree.Validations, as: Val
-  alias Nx
 
   @train_validations [:label, :dataset_size, :learner, :task]
 
@@ -49,14 +48,12 @@ defmodule Scitree do
 
   ## Examples
       iex> Scitree.predict(ref, data)
-      #Nx.Tensor<
-        f32[3][3]
-        [
-          [0.2366665154695511, 0.0, 0.763332724571228],
-          [0.2366665154695511, 0.0, 0.763332724571228],
-          [0.0, 0.9999991655349731, 0.0]
-        ]
-      >
+      [
+        [0.2366665154695511, 0.0, 0.763332724571228],
+        [0.2366665154695511, 0.0, 0.763332724571228],
+        [0.0, 0.9999991655349731, 0.0]
+      ]
+
   """
   def predict(reference, data) do
     data = Infer.execute(data)
@@ -65,9 +62,8 @@ defmodule Scitree do
       :ok ->
         case Native.predict(reference, data) do
           {:ok, results, chunk_size} ->
-            results
-            |> Enum.chunk_every(chunk_size)
-            |> Nx.tensor()
+            predictions = Enum.chunk_every(results, chunk_size)
+            predictions
 
           {:error, reason} ->
             raise List.to_string(reason)
