@@ -60,5 +60,26 @@ The class column was removed from our dataset because the idea was to simulate a
 However, if the column with the result is present, internally this removal operation will be performed.
 
 ```elixir
-Scitree.predict(ref, dataset_predict |> Map.delete(:class))
+predictions = Scitree.predict(ref, dataset_predict |> Map.delete(:class))
+```
+
+If you wish to calculate metrics with the results, you can use [scholar](https://github.com/elixir-nx/scholar) to do it.
+
+This library is including inside the scitree and you can see the options using the documentation.
+
+```elixir
+import IEx.Helpers
+
+h(Scholar.Metrics)
+```
+
+For the calculations it is necessary to work with the data in the form of [Nx tensors](https://github.com/elixir-nx/nx).
+
+To convert the probabilities predictions to class you can use `probabilities_to_class`,
+the index of the first element start with one because zero is reserved to out of dictionar
+
+The result is in tersor format.
+
+```elixir
+Scitree.Predictions.probabilities_to_class(predictions)
 ```
