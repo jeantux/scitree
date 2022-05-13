@@ -3,13 +3,30 @@
 **Scitree** is a collection of **decision forest** model algorithms.<br/>
 Basically this is a wrapper around the [**Yggdrasil**](https://github.com/google/yggdrasil-decision-forests) Decision Forests C ++ libraries.
 
+
+## Examples
+
+```elixir
+dataset_train = # Dataset
+dataset_predict = # Dataset
+
+ref =
+  Scitree.Config.init()
+  |> Scitree.Config.label("class")
+  |> Scitree.Config.learner(:random_forest)
+  |> Scitree.Config.task(:classification)
+  |> Scitree.train(dataset_train)
+  |> Scitree.predict(dataset_predict)
+```
+
+[more examples](/examples/)
 ## Dependencies
 
 * [Python3](https://www.python.org/downloads/) (Tested with version 3.8.10)
 * [NumPy](https://numpy.org/) installed for compiling Tensorflow
 * [Bazel](https://bazel.build/) v3.7.2 for compiling Yggdrasil and all its dependencies
 * GCC >= 9.3.0
-
+* build-essential (base-devel)
 
 ## Getting started
 
