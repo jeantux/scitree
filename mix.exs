@@ -23,7 +23,7 @@ defmodule Scitree.MixProject do
   defp deps do
     [
       {:elixir_make, "~> 0.4", runtime: false},
-      {:nx, "~> 0.1", override: true},
+      {:nx, "~> 0.1.0", override: true},
       {:scholar, "~> 0.1.0", github: "elixir-nx/scholar"}
     ]
   end
