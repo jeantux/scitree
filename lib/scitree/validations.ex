@@ -1,44 +1,34 @@
 defmodule Scitree.Validations do
   @moduledoc """
   Validations to ensure data is consistent and in the
-  format expected by yggdrasil.
+  format expected by Yggdrasil.
   """
 
-  @spec validate(any, list()) :: :ok | {:error, String.t()}
-  def validate(data, validators) do
-    do_validate(data, nil, validators, :ok)
+  alias Scitree.Config
+
+  @type data :: [{String.t(), atom(), [term()]}]
+
+  @spec validate(data, Config.t(), list()) ::
+          :ok
+          | {:error, atom}
+          | {:error, {:incompatible_column_for_task, col_type :: atom(), valid_types :: [atom()]}}
+          | {:error, {:unsupported_validation, name :: atom()}}
+  def validate(data, config \\ %Config{}, validations) do
+    Enum.find_value(validations, :ok, fn validation ->
+      with {:ok, validator} <- get_validator(validation),
+           :ok <- validator.(data, config) do
+        false
+      else
+        error -> error
+      end
+    end)
   end
 
-  @spec validate(any, any, list()) :: :ok | {:error, String.t()}
-  def validate(data, config, validators) do
-    do_validate(data, config, validators, :ok)
-  end
-
-  defp do_validate(_data, _config, [], acc), do: acc
-
-  defp do_validate(data, config, [h | t], acc) do
-    case do_validate(data, config, h) do
-      :ok -> do_validate(data, config, t, acc)
-      error -> error
-    end
-  end
-
-  defp do_validate(data, config, validator) do
-    case get_validator(validator) do
-      {:error, _} = err -> err
-      validate_func -> validate_func.(data, config)
-    end
-  end
-
-  defp get_validator(:label), do: &validate_label/2
-
-  defp get_validator(:dataset_size), do: &validate_dataset_size/2
-
-  defp get_validator(:learner), do: &validate_config_learner/2
-
-  defp get_validator(:task), do: &validate_task/2
-
-  defp get_validator(name), do: {:error, "validate_#{name} is not support"}
+  defp get_validator(:label), do: {:ok, &validate_label/2}
+  defp get_validator(:dataset_size), do: {:ok, &validate_dataset_size/2}
+  defp get_validator(:learner), do: {:ok, &validate_config_learner/2}
+  defp get_validator(:task), do: {:ok, &validate_task/2}
+  defp get_validator(name), do: {:error, {:unsupported_validation, name}}
 
   @doc """
   Checks if the configuration label is in the dataset.
@@ -46,16 +36,18 @@ defmodule Scitree.Validations do
   ## Examples
 
       iex> Scitree.Validations.validate_label(data, config)
-      {:error, "label not identified"}
-
+      {:error, :unidentified_label}
   """
 
-  @spec validate_label(tuple, %{label: String.t()}) :: :ok | {:error, any}
-  def validate_label(data, %{label: label}) do
+  @spec validate_label(data, Config.t()) :: :ok | {:error, :unidentified_label}
+  def validate_label(data, %Config{label: label}) do
     data
-    |> Tuple.to_list()
     |> Enum.any?(fn {title, _type, _value} -> title == label end)
-    |> get_result("label not identified")
+    |> if do
+      :ok
+    else
+      {:error, :unidentified_label}
+    end
   end
 
   @doc """
@@ -64,17 +56,21 @@ defmodule Scitree.Validations do
   ## Examples
 
       iex> Scitree.Validations.validate_dataset_size(data, config)
-      {:error, "columns with different sizes"}
+      {:error, :incompatible_column_sizes}
 
   """
+  @spec validate_dataset_size(data, Config.t()) :: :ok | {:error, :incompatible_column_sizes}
   def validate_dataset_size(data, _config) do
     {_title, _type, first} = elem(data, 0)
     size = Enum.count(first)
 
     data
-    |> Tuple.to_list()
     |> Enum.all?(fn {_title, _type, vals} -> Enum.count(vals) == size end)
-    |> get_result("columns with different sizes")
+    |> if do
+      :ok
+    else
+      {:error, :incompatible_column_sizes}
+    end
   end
 
   @doc """
@@ -83,12 +79,15 @@ defmodule Scitree.Validations do
   ## Examples
 
       iex> Scitree.Validations.validate_config_learner(data, config)
-      {:error, "The learner is either non-existing or non registered"}
+      {:error, :unknown_learner}
   """
+  @spec validate_config_learner(data, Config.t()) :: :ok | {:error, :unknown_learner}
   def validate_config_learner(_data, config) do
-    [:cart, :gradient_boosted_trees, :random_forest]
-    |> Enum.member?(config.learner)
-    |> get_result(" The learner is either non-existing or non registered")
+    if config.learner in [:cart, :gradient_boosted_trees, :random_forest] do
+      :ok
+    else
+      {:error, :unknown_learner}
+    end
   end
 
   @doc """
@@ -97,44 +96,32 @@ defmodule Scitree.Validations do
 
   ## Examples
 
-      iex> Scitree.Validations.validate_task(data, config)
-      {:error, "The label column should be CATEGORICAL for a CLASSIFICATION task"}
+      iex> Scitree.Validations.validate_task({{"my column", :numerical, 1}}, %{label: "my column", task: :classification})
+      {:error, {:incompatible_column_for_task, :numerical, [:categorical, :string]}
   """
+  @spec validate_task(data, Config.t()) ::
+          :ok | {:error, {:incompatible_column_for_task, atom(), [atom()]}}
   def validate_task(data, config) do
-    {_, col_type, _} =
+    col_type =
       data
-      |> Tuple.to_list()
-      |> Enum.find(fn {title, _type, _value} -> title == config.label end)
+      |> Enum.find_value(fn {title, type, _value} ->
+        if title == config.label do
+          type
+        end
+      end)
 
-    check_type_task(col_type, config.task)
+    valid_types = validate_task_types_for_config(config.task)
+
+    if col_type in valid_types do
+      :ok
+    else
+      {:error, {:incompatible_column_for_task, col_type, valid_types}}
+    end
   end
 
-  defp check_type_task(col_type, :classification) do
-    valid? = col_type in [:categorical, :string]
-    get_result(valid?, "The label column should be CATEGORICAL for a CLASSIFICATION task")
-  end
-
-  defp check_type_task(col_type, :regression) do
-    valid? = col_type == :numerical
-    get_result(valid?, "The label column should be NUMERICAL for a REGRESSION task")
-  end
-
-  defp check_type_task(col_type, :ranking) do
-    valid? = col_type == :numerical
-    get_result(valid?, "The label column should be NUMERICAL for a RANKING task")
-  end
-
-  defp check_type_task(col_type, :categorical_uplift) do
-    valid? = col_type == :categorical
-    get_result(valid?, "The label column should be CATEGORICAL for an CATEGORICAL_UPLIFT task.")
-  end
-
-  defp check_type_task(_col_type, task) do
-    get_result(false, "The task #{task} does not exist")
-  end
-
-  @spec get_result(boolean, any) :: :ok | {:error, any}
-  def get_result(true, _reason), do: :ok
-
-  def get_result(false, reason), do: {:error, reason}
+  defp validate_task_types_for_config(:classification), do: [:categorical, :string]
+  defp validate_task_types_for_config(:regression), do: [:numerical]
+  defp validate_task_types_for_config(:ranking), do: [:numerical]
+  defp validate_task_types_for_config(:categorical_uplift), do: [:categorical]
+  defp validate_task_types_for_config(_), do: []
 end

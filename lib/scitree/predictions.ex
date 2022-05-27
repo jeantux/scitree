@@ -3,7 +3,7 @@ defmodule Scitree.Predictions do
   Convert probabilities to predicted class.
   This function will return the index of the class it is likely to be.
 
-  The zero value in yggdrasil is reserved for values outside the dictionary.
+  The zero value in Yggdrasil is reserved for values outside the dictionary.
 
   ## Examples
     iex> pred = Nx.tensor([[0.01, 0.98, 0.1], [0.00, 0.01, 0.99]])
