@@ -19,7 +19,8 @@ ErlNifResourceType *RES_TYPE;
 
 namespace ygg = yggdrasil_decision_forests;
 
-static int open_resource(ErlNifEnv *env) {
+static int open_resource(ErlNifEnv *env)
+{
   const char *mod = "resources";
   const char *name = "yggdrasil";
   int flags = ERL_NIF_RT_CREATE | ERL_NIF_RT_TAKEOVER;
@@ -30,7 +31,8 @@ static int open_resource(ErlNifEnv *env) {
   return 0;
 }
 
-static int load(ErlNifEnv *env, void **priv, ERL_NIF_TERM load_info) {
+static int load(ErlNifEnv *env, void **priv, ERL_NIF_TERM load_info)
+{
   absl::SetFlag(&FLAGS_alsologtostderr, false);
   if (open_resource(env) == -1)
     return -1;
@@ -38,7 +40,8 @@ static int load(ErlNifEnv *env, void **priv, ERL_NIF_TERM load_info) {
   return 0;
 }
 
-static int reload(ErlNifEnv *env, void **priv, ERL_NIF_TERM load_info) {
+static int reload(ErlNifEnv *env, void **priv, ERL_NIF_TERM load_info)
+{
   absl::SetFlag(&FLAGS_alsologtostderr, false);
   if (open_resource(env) == -1)
     return -1;
@@ -46,19 +49,22 @@ static int reload(ErlNifEnv *env, void **priv, ERL_NIF_TERM load_info) {
   return 0;
 }
 
-static ERL_NIF_TERM train(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
+static ERL_NIF_TERM train(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
+{
   scitree::nif::SCITREE_CONFIG config = scitree::nif::make_scitree_config(env, argv[0]);
 
-  if (config.error.status) {
+  if (config.error.status)
+  {
     return scitree::nif::error(env, config.error.reason.c_str());
   }
 
   int size_dataset;
-  ERL_NIF_TERM* tuple_dataset;
+  ERL_NIF_TERM *tuple_dataset;
 
   enif_get_tuple(env, argv[1], &size_dataset, &tuple_dataset);
 
-  if (size_dataset <= 0) {
+  if (size_dataset <= 0)
+  {
     return scitree::nif::error(env, "Empty or invalid dataset.");
   }
 
@@ -73,12 +79,14 @@ static ERL_NIF_TERM train(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
   ygg::dataset::VerticalDataset dataset;
 
   auto error_spec = scitree::dataset::load_data_spec(&spec, env, tuple_dataset, size_dataset);
-  if (error_spec.status) {
+  if (error_spec.status)
+  {
     return scitree::nif::error(env, error_spec.reason.c_str());
   }
 
   auto error_dataset = scitree::dataset::load_dataset(&dataset, &spec, env, tuple_dataset, size_dataset);
-  if (error_dataset.status) {
+  if (error_dataset.status)
+  {
     return scitree::nif::error(env, error_dataset.reason.c_str());
   }
 
@@ -108,29 +116,30 @@ static ERL_NIF_TERM train(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
   return enif_make_tuple2(env, scitree::nif::ok(env), resource);
 }
 
-static ERL_NIF_TERM predict(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
+static ERL_NIF_TERM predict(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
+{
   ygg::model::AbstractModel **p_model;
 
-  if (!enif_get_resource(env, argv[0], RES_TYPE, (void **)&p_model)) {
-    return scitree::nif::error(env, "Unable to load resource.");
+  if (!enif_get_resource(env, argv[0], RES_TYPE, (void **)&p_model))
+  {
+    return scitree::nif::error(env, "Unable to load model.");
   }
 
-  int size_dataset;
-  ERL_NIF_TERM* tuple_dataset;
+  std::vector<ERL_NIF_TERM> dataset;
 
-  enif_get_tuple(env, argv[1], &size_dataset, &tuple_dataset);
-
-  if (size_dataset <= 0) {
+  if (!scitree::nif::get_list(env, argv[1], dataset))
+  {
     return scitree::nif::error(env, "Empty or invalid dataset.");
   }
 
   // Create types dataspec
-  ygg::dataset::VerticalDataset dataset_predit;
+  ygg::dataset::VerticalDataset dataset_predict;
   ygg::dataset::proto::DataSpecification spec = (**p_model).data_spec();
 
   // Load dataset
-  auto error_dataset = scitree::dataset::load_dataset(&dataset_predit, &spec, env, tuple_dataset, size_dataset);
-  if (error_dataset.status) {
+  auto error_dataset = scitree::dataset::load_dataset(&dataset_predict, &spec, env, dataset.data(), dataset.size());
+  if (error_dataset.status)
+  {
     return scitree::nif::error(env, error_dataset.reason.c_str());
   }
 
@@ -140,13 +149,12 @@ static ERL_NIF_TERM predict(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
       (**p_model).BuildFastEngine().value();
   const auto &features = serving_engine->features();
 
-  int num_row = dataset_predit.nrow();
+  int num_row = dataset_predict.nrow();
   std::unique_ptr<ygg::serving::AbstractExampleSet> examples =
       serving_engine->AllocateExamples(num_row);
 
   ygg::serving::CopyVerticalDatasetToAbstractExampleSet(
-      dataset_predit, 0, num_row -1, features, examples.get()
-  );
+      dataset_predict, 0, num_row - 1, features, examples.get());
 
   std::vector<float> batch_of_predictions;
   serving_engine->Predict(*examples, num_row, &batch_of_predictions);
@@ -156,13 +164,17 @@ static ERL_NIF_TERM predict(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
   // allocate potentially large array in the heap instead of the stack
   ERL_NIF_TERM *predictions = new ERL_NIF_TERM[batch_size];
 
-  for (size_t i = 0; i < batch_size; i++) {
+  for (size_t i = 0; i < batch_size; i++)
+  {
     const float prediction = batch_of_predictions[i];
 
-    if ((**p_model).task() == ygg::model::proto::Task::CLASSIFICATION) {
+    if ((**p_model).task() == ygg::model::proto::Task::CLASSIFICATION)
+    {
       float class_prediction = std::clamp(prediction, 0.f, 1.f);
       predictions[i] = enif_make_double(env, class_prediction);
-    } else {
+    }
+    else
+    {
       predictions[i] = enif_make_double(env, prediction);
     }
   }
@@ -171,21 +183,24 @@ static ERL_NIF_TERM predict(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
   ERL_NIF_TERM list = enif_make_list_from_array(env, predictions, batch_size);
 
   // deallocate predictions array
-  delete [] predictions;
+  delete[] predictions;
 
   return enif_make_tuple3(env, scitree::nif::ok(env), list, chunk);
 }
 
-static ERL_NIF_TERM save(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
+static ERL_NIF_TERM save(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
+{
   ygg::model::AbstractModel **p_model;
 
   std::string path;
 
-  if (!scitree::nif::get(env, argv[1], path)) {
+  if (!scitree::nif::get(env, argv[1], path))
+  {
     return scitree::nif::error(env, "Unable to get path.");
   }
 
-  if (!enif_get_resource(env, argv[0], RES_TYPE, (void **)&p_model)) {
+  if (!enif_get_resource(env, argv[0], RES_TYPE, (void **)&p_model))
+  {
     return scitree::nif::error(env, "Unable to load resource.");
   }
 
@@ -194,10 +209,12 @@ static ERL_NIF_TERM save(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
   return scitree::nif::ok(env);
 }
 
-static ERL_NIF_TERM load(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
+static ERL_NIF_TERM load(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
+{
   std::string path;
 
-  if (!scitree::nif::get(env, argv[0], path)) {
+  if (!scitree::nif::get(env, argv[0], path))
+  {
     return scitree::nif::error(env, "Unable to get path.");
   }
 
@@ -219,10 +236,12 @@ static ERL_NIF_TERM load(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
   return enif_make_tuple2(env, scitree::nif::ok(env), resource);
 }
 
-static ERL_NIF_TERM show_dataspec(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
+static ERL_NIF_TERM show_dataspec(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
+{
   ygg::model::AbstractModel **p_model;
 
-  if (!enif_get_resource(env, argv[0], RES_TYPE, (void **)&p_model)) {
+  if (!enif_get_resource(env, argv[0], RES_TYPE, (void **)&p_model))
+  {
     return scitree::nif::error(env, "Unable to load resource.");
   }
 
@@ -237,7 +256,6 @@ static ErlNifFunc nif_funcs[] = {
     {"predict", 2, predict},
     {"save", 2, save},
     {"load", 1, load},
-    {"show_dataspec", 1, show_dataspec}
-};
+    {"show_dataspec", 1, show_dataspec}};
 
 ERL_NIF_INIT(Elixir.Scitree.Native, nif_funcs, &load, &reload, NULL, NULL)
