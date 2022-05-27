@@ -6,17 +6,15 @@ defmodule Scitree do
 
   alias Scitree.Native
   alias Scitree.Infer
-  alias Scitree.Validations, as: Val
-  alias Nx
+  alias Scitree.Validations
 
   @train_validations [:label, :dataset_size, :learner, :task]
 
   @pred_validations [:dataset_size]
 
   @doc """
-  Train a model using the scitree config and a dataset.
-  if the training is successfull, this function returns
-  a model reference.
+  Train a model using a `Scitree` config structure and a dataset.
+  If training is successful, this function returns a model reference.
 
   ## Examples
 
@@ -27,27 +25,24 @@ defmodule Scitree do
   def train(config, data) do
     data = Infer.execute(data)
 
-    case Val.validate(data, config, @train_validations) do
-      :ok ->
-        case Native.train(config, data) do
-          {:ok, ref} ->
-            ref
-
-          {:error, reason} ->
-            raise List.to_string(reason)
-        end
-
+    with :ok <- Validations.validate(data, config, @train_validations),
+         {:ok, ref} <- Native.train(config, data) do
+      ref
+    else
       {:error, reason} ->
-        raise reason
+        raise inspect(reason)
     end
   end
 
   @doc """
-  Apply the model to a dataset.
-  The reference of the model to be executed must be received
-  in the first argument and as the second argument a valid dataset.
+  Apply a model to a dataset.
+
+  The model reference to be executed must be passed
+  as the first argument and a valid dataset must be
+  passert as the second argument.
 
   ## Examples
+
       iex> Scitree.predict(ref, data)
       #Nx.Tensor<
         f32[3][3]
@@ -61,18 +56,12 @@ defmodule Scitree do
   def predict(reference, data) do
     data = Infer.execute(data)
 
-    case Val.validate(data, @pred_validations) do
-      :ok ->
-        case Native.predict(reference, data) do
-          {:ok, results, chunk_size} ->
-            results
-            |> Enum.chunk_every(chunk_size)
-            |> Nx.tensor()
-
-          {:error, reason} ->
-            raise List.to_string(reason)
-        end
-
+    with :ok <- Validations.validate(data, @pred_validations),
+         {:ok, results, chunk_size} <- Native.predict(reference, data) do
+      results
+      |> Enum.chunk_every(chunk_size)
+      |> Nx.tensor()
+    else
       {:error, reason} ->
         raise reason
     end
@@ -95,14 +84,12 @@ defmodule Scitree do
   def inspect_dataspec(reference) do
     case Native.show_dataspec(reference) do
       {:ok, result} ->
-        result
-        |> List.to_string()
-        |> IO.write()
+        IO.puts(result)
 
         reference
 
       {:error, reason} ->
-        raise List.to_string(reason)
+        raise reason
     end
   end
 
@@ -126,13 +113,13 @@ defmodule Scitree do
           ref
 
         {:error, reason} ->
-          raise List.to_string(reason)
+          raise reason
       end
     end
   end
 
   @doc """
-  loads a saved training and returns a model reference.
+  Loads a saved trained model and returns its model reference.
 
   ## Examples
 

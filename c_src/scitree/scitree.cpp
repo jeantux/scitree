@@ -67,7 +67,7 @@ static ERL_NIF_TERM train(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
   train_config.set_learner(config.learner);
   train_config.set_task(config.task);
   train_config.set_label(config.label);
-  
+
   // Create types dataspec
   ygg::dataset::proto::DataSpecification spec;
   ygg::dataset::VerticalDataset dataset;
@@ -82,7 +82,7 @@ static ERL_NIF_TERM train(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
     return scitree::nif::error(env, error_dataset.reason.c_str());
   }
 
-  // Config leaener
+  // Config learner
   std::unique_ptr<ygg::model::AbstractLearner> learner;
   GetLearner(train_config, &learner);
 
@@ -119,7 +119,7 @@ static ERL_NIF_TERM predict(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
   ERL_NIF_TERM* tuple_dataset;
 
   enif_get_tuple(env, argv[1], &size_dataset, &tuple_dataset);
-  
+
   if (size_dataset <= 0) {
     return scitree::nif::error(env, "Empty or invalid dataset.");
   }
@@ -147,27 +147,31 @@ static ERL_NIF_TERM predict(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
   ygg::serving::CopyVerticalDatasetToAbstractExampleSet(
       dataset_predit, 0, num_row -1, features, examples.get()
   );
-  
+
   std::vector<float> batch_of_predictions;
   serving_engine->Predict(*examples, num_row, &batch_of_predictions);
-  int batch_size = batch_of_predictions.size();
-  int qtt_category_types = trunc(batch_size / num_row);
+  const int batch_size = batch_of_predictions.size();
+  const int qtt_category_types = batch_size / num_row;
 
-  ERL_NIF_TERM predictions[batch_size];
+  // allocate potentially large array in the heap instead of the stack
+  ERL_NIF_TERM *predictions = new ERL_NIF_TERM[batch_size];
 
-  int i = 0;
-  for (const float prediction : batch_of_predictions) {
+  for (size_t i = 0; i < batch_size; i++) {
+    const float prediction = batch_of_predictions[i];
+
     if ((**p_model).task() == ygg::model::proto::Task::CLASSIFICATION) {
       float class_prediction = std::clamp(prediction, 0.f, 1.f);
       predictions[i] = enif_make_double(env, class_prediction);
     } else {
       predictions[i] = enif_make_double(env, prediction);
     }
-    i++;
   }
 
   ERL_NIF_TERM chunk = enif_make_int(env, qtt_category_types);
-  ERL_NIF_TERM list = enif_make_list_from_array(env, predictions, batch_of_predictions.size());
+  ERL_NIF_TERM list = enif_make_list_from_array(env, predictions, batch_size);
+
+  // deallocate predictions array
+  delete [] predictions;
 
   return enif_make_tuple3(env, scitree::nif::ok(env), list, chunk);
 }
@@ -200,7 +204,7 @@ static ERL_NIF_TERM load(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
   std::unique_ptr<ygg::model::AbstractModel> model;
 
   LoadModel(path, &model);
-  
+
   // prepare resource
   ygg::model::AbstractModel **p_model;
   p_model = (ygg::model::AbstractModel **)enif_alloc_resource(RES_TYPE, sizeof(ygg::model::AbstractModel *));
