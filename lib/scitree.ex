@@ -6,62 +6,95 @@ defmodule Scitree do
 
   alias Scitree.Native
   alias Scitree.Infer
-  alias Scitree.Validations
+  alias Scitree.Validations, as: Val
+  alias Nx
 
   @train_validations [:label, :dataset_size, :learner, :task]
 
   @pred_validations [:dataset_size]
 
   @doc """
-  Train a model using a `Scitree` config structure and a dataset.
-  If training is successful, this function returns a model reference.
+  Train a model using the scitree config and a dataset.
+  if the training is successfull, this function returns
+  a model reference.
 
   ## Examples
-
-      iex> Scitree.Native.train(config, data)
-      #Reference<0.492951156.1600258049.14622>
-
+      iex> data_train = %{
+      ...>   "outlook" => [1, 1, 2, 3, 3, 3, 2, 1, 1, 3, 1, 2, 2, 3],
+      ...>   "temperature" => [1, 1, 1, 2, 3, 3, 3, 2, 3, 2, 2, 2, 1, 2],
+      ...>   "humidity" => [1, 1, 1, 1, 2, 2, 2, 1, 2, 2, 2, 1, 2, 1],
+      ...>   "wind" => [1, 2, 1, 1, 1, 2, 2, 1, 1, 1, 2, 2, 1, 2],
+      ...>   "play_tennis" => [1, 1, 2, 2, 2, 1, 2, 1, 2, 2, 2, 2, 2, 1]
+      ...> }
+      iex> config = Scitree.Config.init() |> Scitree.Config.label("play_tennis")
+      iex> Scitree.train(config, data_train)
   """
   def train(config, data) do
     data = Infer.execute(data)
 
-    with :ok <- Validations.validate(data, config, @train_validations),
-         {:ok, ref} <- Native.train(config, data) do
-      ref
-    else
+    case Val.validate(data, config, @train_validations) do
+      :ok ->
+        case Native.train(config, data) do
+          {:ok, ref} ->
+            ref
+
+          {:error, reason} ->
+            raise List.to_string(reason)
+        end
+
       {:error, reason} ->
-        raise inspect(reason)
+        raise reason
     end
   end
 
   @doc """
-  Apply a model to a dataset.
-
-  The model reference to be executed must be passed
-  as the first argument and a valid dataset must be
-  passert as the second argument.
+  Apply the model to a dataset.
+  The reference of the model to be executed must be received
+  in the first argument and as the second argument a valid dataset.
 
   ## Examples
-
-      iex> Scitree.predict(ref, data)
+      iex> data_train = %{
+      ...>   "outlook" => [1, 1, 2, 3, 3, 3, 2, 1, 1, 3, 1, 2, 2, 3],
+      ...>   "temperature" => [1, 1, 1, 2, 3, 3, 3, 2, 3, 2, 2, 2, 1, 2],
+      ...>   "humidity" => [1, 1, 1, 1, 2, 2, 2, 1, 2, 2, 2, 1, 2, 1],
+      ...>   "wind" => [1, 2, 1, 1, 1, 2, 2, 1, 1, 1, 2, 2, 1, 2],
+      ...>   "play_tennis" => [1, 1, 2, 2, 2, 1, 2, 1, 2, 2, 2, 2, 2, 1]
+      ...> }
+      iex> data_predict = %{
+      ...>   "outlook" => [1, 1, 2, 3, 3],
+      ...>   "temperature" => [1, 1, 1, 2, 3],
+      ...>   "humidity" => [1, 1, 1, 1, 2],
+      ...>   "wind" => [1, 2, 1, 1, 1]
+      ...> }
+      iex> config = Scitree.Config.init() |> Scitree.Config.label("play_tennis")
+      iex> ref = Scitree.train(config, data_train)
+      iex> Scitree.predict(ref, data_predict)
       #Nx.Tensor<
-        f32[3][3]
+        f32[5][1]
         [
-          [0.2366665154695511, 0.0, 0.763332724571228],
-          [0.2366665154695511, 0.0, 0.763332724571228],
-          [0.0, 0.9999991655349731, 0.0]
+          [0.09257776290178299],
+          [0.007093166466802359],
+          [0.90837562084198],
+          [0.6750206351280212],
+          [0.9997445940971375]
         ]
       >
   """
   def predict(reference, data) do
     data = Infer.execute(data)
 
-    with :ok <- Validations.validate(data, @pred_validations),
-         {:ok, results, chunk_size} <- Native.predict(reference, data) do
-      results
-      |> Enum.chunk_every(chunk_size)
-      |> Nx.tensor()
-    else
+    case Val.validate(data, @pred_validations) do
+      :ok ->
+        case Native.predict(reference, data) do
+          {:ok, results, chunk_size} ->
+            results
+            |> Enum.chunk_every(chunk_size)
+            |> Nx.tensor()
+
+          {:error, reason} ->
+            raise List.to_string(reason)
+        end
+
       {:error, reason} ->
         raise reason
     end
@@ -73,23 +106,57 @@ defmodule Scitree do
   The definition of an attribute contains its name, semantic type, and
   type-dependent meta-information.
 
-  ## Examples
+  You can configure a simple template:
 
-      iex> Scitree.show_dataspec(ref)
-      Number of records: 344
-      Number of columns: 8
-      ...
-      #Reference<0.1739393528.1989279747.143562>
+      data_train = %{
+        "outlook" => [1, 1, 2, 3, 3, 3, 2, 1, 1, 3, 1, 2, 2, 3],
+        "temperature" => [1, 1, 1, 2, 3, 3, 3, 2, 3, 2, 2, 2, 1, 2],
+        "humidity" => [1, 1, 1, 1, 2, 2, 2, 1, 2, 2, 2, 1, 2, 1],
+        "wind" => [1, 2, 1, 1, 1, 2, 2, 1, 1, 1, 2, 2, 1, 2],
+        "play_tennis" => [1, 1, 2, 2, 2, 1, 2, 1, 2, 2, 2, 2, 2, 1]
+      }
+
+      ref =
+        Scitree.Config.init()
+        |> Scitree.Config.label("play_tennis")
+        |> Scitree.train(config, data_train)
+
+  You can inspect the model to fetch the details:
+
+      Number of records: 14
+      Number of columns: 5
+
+      Number of columns by type:
+              CATEGORICAL: 5 (100%)
+
+      Columns:
+
+      CATEGORICAL: 5 (100%)
+              0: "humidity" CATEGORICAL integerized vocab-size:3 no-ood-item
+              1: "outlook" CATEGORICAL integerized vocab-size:4 no-ood-item
+              2: "play_tennis" CATEGORICAL integerized vocab-size:3 no-ood-item
+              3: "temperature" CATEGORICAL integerized vocab-size:4 no-ood-item
+              4: "wind" CATEGORICAL integerized vocab-size:3 no-ood-item
+
+      Terminology:
+              nas: Number of non-available (i.e. missing) values.
+              ood: Out of dictionary.
+              manually-defined: Attribute which type is manually defined by the user i.e. the type was not automatically inferred.
+              tokenized: The attribute value is obtained through tokenization.
+              has-dict: The attribute is attached to a string dictionary e.g. a categorical attribute stored as a string.
+              vocab-size: Number of unique values.
   """
   def inspect_dataspec(reference) do
     case Native.show_dataspec(reference) do
       {:ok, result} ->
-        IO.puts(result)
+        result
+        |> List.to_string()
+        |> IO.write()
 
         reference
 
       {:error, reason} ->
-        raise reason
+        raise List.to_string(reason)
     end
   end
 
@@ -98,11 +165,6 @@ defmodule Scitree do
 
   The directory must not yet exist and will be created by
   this function.
-
-  ## Examples
-
-      iex> Scitree.save(ref, "/home/user/")
-      #Reference<0.1739393528.1989279747.143562>
   """
   def save(ref, path) do
     if File.dir?(path) do
@@ -113,18 +175,14 @@ defmodule Scitree do
           ref
 
         {:error, reason} ->
-          raise reason
+          raise List.to_string(reason)
       end
     end
   end
 
   @doc """
-  Loads a saved trained model and returns its model reference.
-
-  ## Examples
-
-      iex> Scitree.load("/home/user/")
-      #Reference<0.1739393528.1989279747.143562>
+  loads a saved training and returns a model reference
+  based on the path.
   """
   def load(path) do
     case Scitree.Native.load(path) do

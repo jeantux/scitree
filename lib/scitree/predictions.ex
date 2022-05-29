@@ -18,5 +18,4 @@ defmodule Scitree.Predictions do
     |> Nx.argmax(axis: 1)
     |> Nx.add(1)
   end
-
 end

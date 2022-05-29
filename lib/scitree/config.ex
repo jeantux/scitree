@@ -3,11 +3,11 @@ defmodule Scitree.Config do
 
   @type learners :: :cart | :gradient_boosted_trees | :random_forest
 
-  @default_options [
+  @default_options %{
     maximum_model_size_in_memory_in_bytes: -1.0,
     maximum_training_duration_seconds: -1.0,
     random_seed: 123_456
-  ]
+  }
 
   defstruct learner: :gradient_boosted_trees,
             options: @default_options,
@@ -27,11 +27,11 @@ defmodule Scitree.Config do
         label: "",
         learner: :gradient_boosted_trees,
         log_directory: "",
-        options: [
+        options: %{
           maximum_model_size_in_memory_in_bytes: -1.0,
           maximum_training_duration_seconds: -1.0,
           random_seed: 123456
-        ],
+        },
         task: :classification
       }
   """
@@ -50,11 +50,11 @@ defmodule Scitree.Config do
         label: "",
         learner: :random_forest,
         log_directory: "",
-        options: [
+        options: %{
           maximum_model_size_in_memory_in_bytes: -1.0,
           maximum_training_duration_seconds: -1.0,
           random_seed: 123456
-        ],
+        },
         task: :classification
       }
 
@@ -75,26 +75,28 @@ defmodule Scitree.Config do
         label: "",
         learner: :random_forest,
         log_directory: "",
-        options: [
+        options: %{
           maximum_model_size_in_memory_in_bytes: -1.0,
           maximum_training_duration_seconds: -1.0,
           random_seed: 654321
-        ],
+        },
         task: :classification
       }
   """
   @spec learner(t(), learners(), list()) :: t()
   def learner(config, learner, opts \\ []) do
-    options = Keyword.validate!(opts, @default_options)
+    options = Enum.into(opts, @default_options)
 
-    %{config | options: options, learner: learner}
+    config
+    |> Map.put(:options, options)
+    |> Map.put(:learner, learner)
   end
 
   @spec task(t(), tasks()) :: t()
-  def task(config, type), do: %{config | task: type}
+  def task(config, type), do: Map.put(config, :task, type)
 
   @spec label(t(), String.t()) :: t()
-  def label(config, label), do: %{config | label: label}
+  def label(config, label), do: Map.put(config, :label, label)
 
   @doc """
   Set a directory to save training logs
@@ -106,14 +108,14 @@ defmodule Scitree.Config do
         label: "",
         learner: :gradient_boosted_trees,
         log_directory: "/path",
-        options: [
+        options: %{
           maximum_model_size_in_memory_in_bytes: -1.0,
           maximum_training_duration_seconds: -1.0,
           random_seed: 123456
-        ],
+        },
         task: :classification
       }
   """
   @spec log_directory(t(), String.t()) :: t()
-  def log_directory(config, dir), do: %{config | log_directory: dir}
+  def log_directory(config, dir), do: Map.put(config, :log_directory, dir)
 end

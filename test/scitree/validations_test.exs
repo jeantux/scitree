@@ -10,7 +10,7 @@ defmodule Scitree.ValidationsTest do
       {"year", :categorical, [2009, 2009, 2007]}
     }
 
-    expected = {:error, "label not identified"}
+    expected = {:error, :unidentified_label}
     config = Config.init() |> Config.label("species")
     result = Val.validate_label(simple_penguins_dataset, config)
 
@@ -23,14 +23,14 @@ defmodule Scitree.ValidationsTest do
       {"island", :string, ["Dream", "Dream"]}
     }
 
-    expected = {:error, "columns with different sizes"}
+    expected = {:error, :incompatible_column_sizes}
     result = Val.validate_dataset_size(simple_penguins_dataset, nil)
 
     assert result == expected
   end
 
   test "test validate_config_learner/2" do
-    expected = {:error, " The learner is either non-existing or non registered"}
+    expected = {:error, :unknown_learner}
     config = Config.init() |> Config.learner(:unknown_random)
     result = Val.validate_config_learner(nil, config)
 
@@ -128,7 +128,7 @@ defmodule Scitree.ValidationsTest do
       |> Config.task(:unknown)
       |> Config.label("bill_depth_mm")
 
-    expected = {:error, "The task unknown does not exist"}
+    expected = {:error, {:incompatible_column_for_task, :numerical, []}}
     result = Val.validate_task(simple_penguins_dataset, config)
 
     assert result == expected
@@ -167,7 +167,7 @@ defmodule Scitree.ValidationsTest do
       {"species", :string, ["Chinstrap", "Adelie", "Adelie"]}
     }
 
-    expected = {:error, "validate_non_existent_validator is not support"}
+    expected = {:error, {:unsupported_validation, :non_existent_validator}}
     result = Val.validate(simple_penguins_dataset, [:non_existent_validator])
     assert result == expected
   end
