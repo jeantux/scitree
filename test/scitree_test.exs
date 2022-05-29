@@ -1,5 +1,6 @@
 defmodule ScitreeTest do
   use ExUnit.Case
+  doctest Scitree
 
   alias Nx
 
@@ -40,8 +41,12 @@ defmodule ScitreeTest do
       assert_raise RuntimeError, fn -> Scitree.train(config, dataset) end
     end
 
-    test "prediction with default train" do
-      config = Scitree.Config.init() |> Scitree.Config.label("play_tennis")
+    test "prediction with gradient boosted trees train" do
+      config =
+        Scitree.Config.init()
+        |> Scitree.Config.label("play_tennis")
+        |> Scitree.Config.learner(:gradient_boosted_trees)
+
       ref = Scitree.train(config, @data_train)
 
       expected =
@@ -55,6 +60,10 @@ defmodule ScitreeTest do
 
       result = Scitree.predict(ref, @data_predict)
       assert result == expected
+    end
+
+    test "Unable to load resource test" do
+      assert_raise RuntimeError, fn -> Scitree.predict(000, @data_predict) end
     end
 
     test "prediction with random forest train" do
@@ -76,6 +85,15 @@ defmodule ScitreeTest do
 
       result = Scitree.predict(ref, @data_predict)
       assert result == expected
+    end
+
+    test "Test directory already exists" do
+      ref =
+        Scitree.Config.init()
+        |> Scitree.Config.label("play_tennis")
+        |> Scitree.train(@data_train)
+
+      assert_raise RuntimeError, fn -> Scitree.save(ref, System.tmp_dir!()) end
     end
 
     test "save and load models" do
