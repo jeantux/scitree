@@ -15,7 +15,7 @@ defmodule Scitree.Validations do
   def validate(data, config \\ %Config{}, validations) do
     Enum.find_value(validations, :ok, fn validation ->
       with {:ok, validator} <- get_validator(validation),
-            :ok <- validator.(data, config) do
+           :ok <- validator.(data, config) do
         false
       else
         error -> error
