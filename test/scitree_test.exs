@@ -24,7 +24,7 @@ defmodule ScitreeTest do
   describe "classification task" do
     test "train label not identified" do
       config = Scitree.Config.init() |> Scitree.Config.label("invalid")
-      assert_raise RuntimeError, fn -> Scitree.train(config, @data_train) end
+      assert_raise UndefinedFunctionError, fn -> Scitree.train(config, @data_train) end
     end
 
     test "columns with different size" do
@@ -38,7 +38,7 @@ defmodule ScitreeTest do
         "play_tennis" => [1, 1, 2, 2, 2, 1, 2, 1, 2, 2, 2, 2, 2, 1]
       }
 
-      assert_raise RuntimeError, fn -> Scitree.train(config, dataset) end
+      assert_raise UndefinedFunctionError, fn -> Scitree.train(config, dataset) end
     end
 
     test "prediction with gradient boosted trees train" do
