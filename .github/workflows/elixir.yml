@@ -22,6 +22,14 @@ jobs:
       with:
         elixir-version: '1.13.4' # Define the elixir version [required]
         otp-version: '24.1' # Define the OTP version [required]
+    # Setup the compilation environment
+    - uses: abhinavsingh/setup-bazel@v3
+      with:
+        version: "3.7.2"
+    - uses: actions/setup-python@v2
+      with:
+        python-version: "3.8"
+    - run: python -m pip install --upgrade pip numpy tensorflow
     - name: Restore dependencies cache
       uses: actions/cache@v3
       with:
@@ -32,3 +40,5 @@ jobs:
       run: mix deps.get
     - name: Check formatting
       run: mix format --check-formatted
+    - name: Run tests
+      run: mix test
