@@ -109,7 +109,7 @@ int get(ErlNifEnv *env, ERL_NIF_TERM term, real *var) {
     return 0;
 }
 
-// atom's
+// atoms
 int get_atom(ErlNifEnv *env, ERL_NIF_TERM term, std::string &var) {
     unsigned atom_length;
     if (!enif_get_atom_length(env, term, &atom_length, ERL_NIF_LATIN1)) {
@@ -123,6 +123,25 @@ int get_atom(ErlNifEnv *env, ERL_NIF_TERM term, std::string &var) {
 
     var.resize(atom_length);
 
+    return 1;
+}
+
+// lists
+int get_list(ErlNifEnv *env,
+             ERL_NIF_TERM list,
+             std::vector<ERL_NIF_TERM> &var)
+{
+    unsigned int length;
+    if (!enif_get_list_length(env, list, &length))
+        return 0;
+    var.reserve(length);
+    ERL_NIF_TERM head, tail;
+
+    while (enif_get_list_cell(env, list, &head, &tail))
+    {
+        var.push_back(head);
+        list = tail;
+    }
     return 1;
 }
 
