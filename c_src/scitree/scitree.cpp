@@ -57,16 +57,12 @@ static ERL_NIF_TERM train(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
     return scitree::nif::error(env, config.error.reason.c_str());
   }
 
-  int size_dataset;
-  ERL_NIF_TERM *tuple_dataset;
+  std::vector<ERL_NIF_TERM> nif_dataset;
 
-  enif_get_tuple(env, argv[1], &size_dataset, &tuple_dataset);
-
-  if (size_dataset <= 0)
+  if (!scitree::nif::get_list(env, argv[1], nif_dataset))
   {
     return scitree::nif::error(env, "Empty or invalid dataset.");
   }
-
   // Training configuration
   ygg::model::proto::TrainingConfig train_config;
   train_config.set_learner(config.learner);
@@ -77,13 +73,13 @@ static ERL_NIF_TERM train(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
   ygg::dataset::proto::DataSpecification spec;
   ygg::dataset::VerticalDataset dataset;
 
-  auto error_spec = scitree::dataset::load_data_spec(&spec, env, tuple_dataset, size_dataset);
+  auto error_spec = scitree::dataset::load_data_spec(&spec, env, nif_dataset.data(), nif_dataset.size());
   if (error_spec.status)
   {
     return scitree::nif::error(env, error_spec.reason.c_str());
   }
 
-  auto error_dataset = scitree::dataset::load_dataset(&dataset, &spec, env, tuple_dataset, size_dataset);
+  auto error_dataset = scitree::dataset::load_dataset(&dataset, &spec, env, nif_dataset.data(), nif_dataset.size());
   if (error_dataset.status)
   {
     return scitree::nif::error(env, error_dataset.reason.c_str());
@@ -124,21 +120,20 @@ static ERL_NIF_TERM predict(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
     return scitree::nif::error(env, "Unable to load model.");
   }
 
-  int size_dataset;
-  ERL_NIF_TERM* tuple_dataset;
+  std::vector<ERL_NIF_TERM> dataset;
 
-  enif_get_tuple(env, argv[1], &size_dataset, &tuple_dataset);
-  
-  if (size_dataset <= 0) {
+  if (!scitree::nif::get_list(env, argv[1], dataset))
+  {
     return scitree::nif::error(env, "Empty or invalid dataset.");
   }
+
 
   // Create types dataspec
   ygg::dataset::VerticalDataset dataset_predict;
   ygg::dataset::proto::DataSpecification spec = (**p_model).data_spec();
 
   // Load dataset
-  auto error_dataset = scitree::dataset::load_dataset(&dataset_predict, &spec, env, tuple_dataset, size_dataset);
+  auto error_dataset = scitree::dataset::load_dataset(&dataset_predict, &spec, env, dataset.data(), dataset.size());
   if (error_dataset.status)
   {
     return scitree::nif::error(env, error_dataset.reason.c_str());
@@ -155,19 +150,20 @@ static ERL_NIF_TERM predict(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
       serving_engine->AllocateExamples(num_row);
 
   ygg::serving::CopyVerticalDatasetToAbstractExampleSet(
-      dataset_predict, 0, num_row -1, features, examples.get()
-  );
+      dataset_predict, 0, num_row - 1, features, examples.get());
   
   std::vector<float> batch_of_predictions;
   serving_engine->Predict(*examples, num_row, &batch_of_predictions);
   const int batch_size = batch_of_predictions.size();
   const int qtt_category_types = batch_size / num_row;
 
-  ERL_NIF_TERM predictions[batch_size];
+  ERL_NIF_TERM *predictions = new ERL_NIF_TERM[batch_size];
 
   int i = 0;
-  for (const float prediction : batch_of_predictions)
+  for (size_t i = 0; i < batch_size; i++)
   {
+    const float prediction = batch_of_predictions[i];
+
     if ((**p_model).task() == ygg::model::proto::Task::CLASSIFICATION)
     {
       float class_prediction = std::clamp(prediction, 0.f, 1.f);
@@ -177,11 +173,13 @@ static ERL_NIF_TERM predict(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
     {
       predictions[i] = enif_make_double(env, prediction);
     }
-    i++;
   }
 
   ERL_NIF_TERM chunk = enif_make_int(env, qtt_category_types);
-  ERL_NIF_TERM list = enif_make_list_from_array(env, predictions, batch_of_predictions.size());
+  ERL_NIF_TERM list = enif_make_list_from_array(env, predictions, batch_size);
+
+  // deallocate predictions array
+  delete[] predictions;
 
   return enif_make_tuple3(env, scitree::nif::ok(env), list, chunk);
 }

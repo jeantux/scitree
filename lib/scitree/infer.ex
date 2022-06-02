@@ -1,20 +1,14 @@
 defmodule Scitree.Infer do
   @doc """
-  Returns a tuple of `{title, type, data}`-tuples.
+  Returns a list of `{title, type, data}`-tuples.
 
   ## Examples
       iex> data = %{:id => [1, 2, 3], :title => ["a", "b", "c"]}
-      iex> Scitree.Inference.execute(data)
-      {{"id", :categorical, [1, 2, 3]},
-       {"title", :string, ["a", "b", "c"]}}
+      iex> Scitree.Infer.execute(data)
+      [{"id", :categorical, [1, 2, 3]},
+       {"title", :string, ["a", "b", "c"]}]
   """
   def execute(data) do
-    data
-    |> infer()
-    |> List.to_tuple()
-  end
-
-  defp infer(data) do
     for {title, values} <- data,
         [val | _] = values do
       inferred_type = infer_column_type(val)
