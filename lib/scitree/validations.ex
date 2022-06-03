@@ -59,7 +59,7 @@ defmodule Scitree.Validations do
   """
   @spec validate_dataset_size(data, Config.t()) :: :ok | {:error, :incompatible_column_sizes}
   def validate_dataset_size(data, _config) do
-    {_title, _type, first} = Enum.at(data, 0)
+    {_title, _type, first} = hd(data)
     size = Enum.count(first)
 
     data
