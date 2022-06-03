@@ -1,6 +1,6 @@
 defmodule ScitreeTest do
   use ExUnit.Case
-  # doctest Scitree
+  doctest Scitree
 
   alias Nx
 

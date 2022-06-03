@@ -219,11 +219,11 @@ SCITREE_CONFIG make_scitree_config(ErlNifEnv *env, ERL_NIF_TERM term) {
 
     int tupleSize = 2;
 
-    for (size_t i = 0; i < nif_dataset.size(); i++)
+    for (ERL_NIF_TERM nif_rec : nif_dataset)
     {
         std::string key;
         ERL_NIF_TERM* tuple_dataset;
-        enif_get_tuple(env, nif_dataset[i], &tupleSize, &tuple_dataset);
+        enif_get_tuple(env, nif_rec, &tupleSize, &tuple_dataset);
         scitree::nif::get_atom(env, tuple_dataset[0], key);
 
         if (key == "maximum_training_duration_seconds")
