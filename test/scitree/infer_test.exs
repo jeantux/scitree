@@ -11,13 +11,13 @@ defmodule Scitree.InferTest do
       year: [2009, 2009, 2007]
     }
 
-    expected = {
+    expected = [
       {"bill_depth_mm", :numerical, [18.7, 15.5, 18.7]},
       {"island", :string, ["Dream", "Dream", "Torgersen"]},
       {"sex", :categorical, [false, false, true]},
       {"species", :string, ["Chinstrap", "Adelie", "Adelie"]},
       {"year", :categorical, [2009, 2009, 2007]}
-    }
+    ]
 
     assert Infer.execute(data) == expected
   end
@@ -28,10 +28,10 @@ defmodule Scitree.InferTest do
       year: [2009, 2009, 2007]
     }
 
-    expected = {
+    expected = [
       {"species", :unknown, [%{name: "Chinstrap"}, %{name: "Adelie"}, %{name: "Adelie"}]},
       {"year", :categorical, [2009, 2009, 2007]}
-    }
+    ]
 
     assert Infer.execute(data) == expected
   end

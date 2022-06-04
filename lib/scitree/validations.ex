@@ -38,10 +38,9 @@ defmodule Scitree.Validations do
       {:error, :unidentified_label}
   """
 
-  @spec validate_label(tuple, %{label: String.t()}) :: :ok | {:error, any}
-  def validate_label(data, %{label: label}) do
+  @spec validate_label(data, Config.t()) :: :ok | {:error, :unidentified_label}
+  def validate_label(data, %Config{label: label}) do
     data
-    |> Tuple.to_list()
     |> Enum.any?(fn {title, _type, _value} -> title == label end)
     |> if do
       :ok
@@ -58,12 +57,12 @@ defmodule Scitree.Validations do
       iex> Scitree.Validations.validate_dataset_size(data, config)
       {:error, :incompatible_column_sizes}
   """
+  @spec validate_dataset_size(data, Config.t()) :: :ok | {:error, :incompatible_column_sizes}
   def validate_dataset_size(data, _config) do
-    {_title, _type, first} = elem(data, 0)
+    {_title, _type, first} = hd(data)
     size = Enum.count(first)
 
     data
-    |> Tuple.to_list()
     |> Enum.all?(fn {_title, _type, vals} -> Enum.count(vals) == size end)
     |> if do
       :ok
@@ -103,7 +102,6 @@ defmodule Scitree.Validations do
   def validate_task(data, config) do
     col_type =
       data
-      |> Tuple.to_list()
       |> Enum.find_value(fn {title, type, _value} ->
         if title == config.label do
           type

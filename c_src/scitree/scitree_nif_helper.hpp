@@ -203,13 +203,48 @@ SCITREE_CONFIG make_scitree_config(ErlNifEnv *env, ERL_NIF_TERM term) {
 
     ERL_NIF_TERM max_train_sec_nif, max_model_size_nif, random_seed_nif;
 
-    enif_get_map_value(env, options_nif, enif_make_atom(env, "maximum_training_duration_seconds"), &max_train_sec_nif);
-    enif_get_map_value(env, options_nif, enif_make_atom(env, "maximum_model_size_in_memory_in_bytes"), &max_model_size_nif);
-    enif_get_map_value(env, options_nif, enif_make_atom(env, "random_seed"), &random_seed_nif);
+    config.options.maximum_training_duration_seconds = -1;
+    config.options.maximum_model_size_in_memory_in_bytes = -1;
+    config.options.random_seed = 123456;
 
-    get(env, max_train_sec_nif, &config.options.maximum_training_duration_seconds);
-    get(env, max_model_size_nif, &config.options.maximum_model_size_in_memory_in_bytes);
-    get(env, random_seed_nif, &config.options.random_seed);
+    std::vector<ERL_NIF_TERM> nif_dataset;
+
+    if (!scitree::nif::get_list(env, options_nif, nif_dataset))
+    {
+        config.error.status = true;
+        config.error.reason = "Unable to get options.";
+
+        return config;
+    }
+
+    int tupleSize = 2;
+
+    for (ERL_NIF_TERM nif_rec : nif_dataset)
+    {
+        std::string key;
+
+        std::unique_ptr<ERL_NIF_TERM*> p_options(new ERL_NIF_TERM*);
+        enif_get_tuple(env, nif_rec, &tupleSize, p_options.get());
+
+        scitree::nif::get_atom(env, (*(p_options.get()))[0], key);
+
+        if (key == "maximum_training_duration_seconds")
+        {
+            scitree::nif::get(env, (*(p_options.get()))[1], &config.options.maximum_training_duration_seconds);
+        }
+
+        if (key == "maximum_model_size_in_memory_in_bytes")
+        {
+            scitree::nif::get(env, (*(p_options.get()))[1], &config.options.maximum_model_size_in_memory_in_bytes);
+        }
+
+        if (key == "random_seed")
+        {
+            scitree::nif::get(env, (*(p_options.get()))[1], &config.options.random_seed);
+        }
+    }
+
+    nif_dataset.clear();
 
     config.label = label;
     config.learner = learner;
