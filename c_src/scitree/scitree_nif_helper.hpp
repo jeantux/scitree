@@ -222,26 +222,29 @@ SCITREE_CONFIG make_scitree_config(ErlNifEnv *env, ERL_NIF_TERM term) {
     for (ERL_NIF_TERM nif_rec : nif_dataset)
     {
         std::string key;
-        ERL_NIF_TERM* tuple_dataset;
-        enif_get_tuple(env, nif_rec, &tupleSize, &tuple_dataset);
-        scitree::nif::get_atom(env, tuple_dataset[0], key);
+
+        std::unique_ptr<ERL_NIF_TERM*> p_options(new ERL_NIF_TERM*);
+        enif_get_tuple(env, nif_rec, &tupleSize, p_options.get());
+
+        scitree::nif::get_atom(env, (*(p_options.get()))[0], key);
 
         if (key == "maximum_training_duration_seconds")
         {
-            scitree::nif::get(env, tuple_dataset[1], &config.options.maximum_training_duration_seconds);
+            scitree::nif::get(env, (*(p_options.get()))[1], &config.options.maximum_training_duration_seconds);
         }
 
         if (key == "maximum_model_size_in_memory_in_bytes")
         {
-            scitree::nif::get(env, tuple_dataset[1], &config.options.maximum_model_size_in_memory_in_bytes);
+            scitree::nif::get(env, (*(p_options.get()))[1], &config.options.maximum_model_size_in_memory_in_bytes);
         }
 
         if (key == "random_seed")
         {
-            scitree::nif::get(env, tuple_dataset[1], &config.options.random_seed);
+            scitree::nif::get(env, (*(p_options.get()))[1], &config.options.random_seed);
         }
     }
-    
+
+    nif_dataset.clear();
 
     config.label = label;
     config.learner = learner;
