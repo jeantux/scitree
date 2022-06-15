@@ -10,13 +10,12 @@ Basically this is a wrapper around the [**Yggdrasil**](https://github.com/google
 dataset_train = # Dataset
 dataset_predict = # Dataset
 
-ref =
-  Scitree.Config.init()
-  |> Scitree.Config.label("class")
-  |> Scitree.Config.learner(:random_forest)
-  |> Scitree.Config.task(:classification)
-  |> Scitree.train(dataset_train)
-  |> Scitree.predict(dataset_predict)
+Scitree.Config.init()
+|> Scitree.Config.label("class")
+|> Scitree.Config.learner(:random_forest)
+|> Scitree.Config.task(:classification)
+|> Scitree.train(dataset_train)
+|> Scitree.predict(dataset_predict)
 ```
 
 [more examples](/examples/)
