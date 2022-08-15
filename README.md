@@ -1,7 +1,7 @@
 # Scitree
 
 **Scitree** is a collection of **decision forest** model algorithms.<br/>
-Basically this is a wrapper around the [**Yggdrasil**](https://github.com/google/yggdrasil-decision-forests) Decision Forests C ++ libraries.
+Basically this is a wrapper around the [**Yggdrasil**](https://github.com/google/yggdrasil-decision-forests) Decision Forests C++ libraries.
 
 
 ## Examples
