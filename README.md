@@ -23,7 +23,7 @@ Scitree.Config.init()
 
 * [Python3](https://www.python.org/downloads/) (Tested with version 3.8.10)
 * [NumPy](https://numpy.org/) installed for compiling Tensorflow
-* [Bazel](https://bazel.build/) v3.7.2 for compiling Yggdrasil and all its dependencies
+* [Bazelisk](https://bazel.build/install/bazelisk) (or [Bazel](https://bazel.build/install) 5.1.1)
 * GCC >= 9.3.0
 * build-essential (base-devel)
 
