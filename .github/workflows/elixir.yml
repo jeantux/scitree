@@ -10,19 +10,20 @@ permissions:
   contents: read
 
 jobs:
-  build:
-
+  main:
     name: Build and test
     runs-on: ubuntu-latest
-
+    strategy:
+      fail-fast: false
+      matrix:
+        elixir: ["1.14.2"]
+        otp: ["24.0"]
     steps:
     - uses: actions/checkout@v2
-    - name: Set up Elixir
-      uses: erlef/setup-beam@v1
+    - uses: erlef/setup-beam@v1
       with:
-        elixir-version: '1.14.2' # Define the elixir version [required]
-        otp-version: '24.1' # Define the OTP version [required]
-    # Setup the compilation environment
+        otp-version: ${{ matrix.otp }}
+        elixir-version: ${{ matrix.elixir }}
     - name: Install bazelisk
       run: |
         curl -LO "https://github.com/bazelbuild/bazelisk/releases/download/v1.1.0/bazelisk-linux-amd64"
