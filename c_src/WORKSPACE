@@ -13,8 +13,8 @@ http_archive(
 
 http_archive(
     name = "ydf",
-    urls = ["https://github.com/google/yggdrasil-decision-forests/archive/refs/heads/main.zip"],
-    strip_prefix = "yggdrasil-decision-forests-main",
+    urls = ["https://github.com/google/yggdrasil-decision-forests/archive/refs/tags/1.2.0.zip"],
+    strip_prefix = "yggdrasil-decision-forests-1.2.0",
 )
 
 # You can download and configure the yggdrasil project locally, 
