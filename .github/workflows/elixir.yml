@@ -28,6 +28,7 @@ jobs:
       run: |
         curl -LO "https://github.com/bazelbuild/bazelisk/releases/download/v1.1.0/bazelisk-linux-amd64"
         mkdir -p "/bin/"
+        chmod 777 "/bin"
         mv bazelisk-linux-amd64 "/bin/bazel"
         chmod +x "/bin/bazel"
     - uses: actions/setup-python@v2
