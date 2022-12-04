@@ -2,15 +2,16 @@
 
 PROJECT_NAME=scitree
 PRIV_DIR=$(MIX_APP_PATH)/priv
+SCITREE_SO = $(PRIV_DIR)/scitree.so
 
 BAZEL_FLAGS=--config=linux_cpp17 \
 	--config=linux_avx2 \
 	--experimental_ui_max_stdouterr_bytes=1073741819 \
 	--copt=-fpic
 
-all: $(PROJECT_NAME)
+all: $(SCITREE_SO)
 
-$(PROJECT_NAME):
+$(SCITREE_SO):
 		cd ./c_src && \
 		rm -f erlnif/include && \
 		ln -s $(ERTS_INCLUDE_DIR) erlnif/include && \

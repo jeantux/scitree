@@ -1,14 +1,21 @@
 defmodule Scitree.MixProject do
   use Mix.Project
 
+  @version "0.1.1"
+
   def project do
     [
       app: :scitree,
-      version: "0.1.0",
+      version: @version,
       elixir: "~> 1.13",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      compilers: [:elixir_make] ++ Mix.compilers()
+      compilers: [:elixir_make] ++ Mix.compilers(),
+
+      make_precompiler: {:nif, CCPrecompiler},
+      make_precompiler_url: "https://github.com/jeantux/scitree/releases/download/v#{@version}/@{artefact_filename}",
+      make_precompiler_filename: "scitree",
+      make_precompiler_priv_paths: ["scitree.*"]
     ]
   end
 
@@ -22,9 +29,9 @@ defmodule Scitree.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:elixir_make, "~> 0.4", runtime: false},
+      {:elixir_make, "~> 0.6", runtime: false, github: "elixir-lang/elixir_make", override: true},
+      {:cc_precompiler, "~> 0.1.0", runtime: false, github: "cocoa-xu/cc_precompiler"},
       {:nx, "~> 0.1.0", override: true},
-      {:scholar, "~> 0.1.0", github: "elixir-nx/scholar"}
     ]
   end
 end
