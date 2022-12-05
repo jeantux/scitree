@@ -1,0 +1,71 @@
+name: Scitree Precompile
+
+on:
+  push:
+    branches: [ main ]
+  paths:
+    # Just run on main branch if "c_src" path changed. Tags will always run.
+    - "c_src/**"
+  tags:
+    - 'v*'
+
+permissions:
+  contents: read
+
+jobs:
+  main:
+    name: Build and test
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        elixir: ["1.14.2"]
+        otp: ["24.0"]
+    steps:
+    - uses: actions/checkout@v2
+    - uses: erlef/setup-beam@v1
+      with:
+        otp-version: ${{ matrix.otp }}
+        elixir-version: ${{ matrix.elixir }}
+    - name: Install system dependecies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential automake autoconf pkg-config bc m4 unzip zip \
+          gcc g++ \
+          gcc-i686-linux-gnu g++-i686-linux-gnu \
+          gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
+          gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf \
+          gcc-riscv64-linux-gnu g++-riscv64-linux-gnu \
+          gcc-powerpc64le-linux-gnu g++-powerpc64le-linux-gnu \
+          gcc-s390x-linux-gnu g++-s390x-linux-gnu
+    - name: Install bazelisk
+      run: |
+        curl -LO "https://github.com/bazelbuild/bazelisk/releases/download/v1.1.0/bazelisk-linux-amd64"
+        mkdir -p "${GITHUB_WORKSPACE}/bin/"
+        echo "${GITHUB_WORKSPACE}/bin" >> $GITHUB_PATH
+        mv bazelisk-linux-amd64 "${GITHUB_WORKSPACE}/bin/bazel"
+        chmod +x "${GITHUB_WORKSPACE}/bin/bazel"
+    - uses: actions/setup-python@v2
+      with:
+        python-version: "3.8"
+    - run: python -m pip install --upgrade pip numpy tensorflow
+    - name: Restore dependencies cache
+      uses: actions/cache@v3
+      with:
+        path: deps
+        key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
+        restore-keys: ${{ runner.os }}-mix-
+    - name: Install dependencies
+      run: mix deps.get
+    - name: Run tests
+      run: MIX_ENV=test mix test
+    - name: Create precompiled library
+      run: |
+        export ELIXIR_MAKE_CACHE_DIR=$(pwd)/cache
+        mkdir -p "${ELIXIR_MAKE_CACHE_DIR}"
+        MIX_ENV=prod mix elixir_make.precompile
+    - uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: |
+          cache/*.tar.gz
