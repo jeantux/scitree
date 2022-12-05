@@ -13,8 +13,7 @@ permissions:
   contents: read
 
 jobs:
-  main:
-    name: Build and test
+  linux:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
