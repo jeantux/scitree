@@ -42,7 +42,7 @@ defmodule Scitree.MixProject do
       name: "scitree",
       licenses: ["Apache-2.0"],
       files: ~w(lib c_src mix.exs README* LICENSE* Makefile checksum.exs),
-      links: %{"GitHub" => @github_url},
+      links: %{"GitHub" => @github_url}
     ]
   end
 end
