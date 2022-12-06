@@ -1,7 +1,6 @@
 defmodule Scitree do
   @moduledoc """
-  Bindings to Yggdrasil Decision Forests (YDF), with a
-  collection of decision forest model algorithms.
+  Scitree is a collection of state-of-the-art algorithms for Decision Forest model algorithms.
   """
 
   alias Scitree.Native

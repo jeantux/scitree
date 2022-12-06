@@ -1,8 +1,9 @@
 # Scitree
 
-**Scitree** is a collection of **decision forest** model algorithms.<br/>
-Basically this is a wrapper around the [**Yggdrasil**](https://github.com/google/yggdrasil-decision-forests) Decision Forests C++ libraries.
+**Scitree** is a collection of state-of-the-art algorithms for **Decision Forest** model algorithms.<br/>
+Basically this is a wrapper around the [**Yggdrasil**](https://github.com/google/yggdrasil-decision-forests) Decision Forests C++ libraries. <br/>
 
+*precompiled files for architecture x only*
 
 ## Examples
 
@@ -40,7 +41,7 @@ Then you can add `Scitree` as dependency in your `mix.exs`. At the moment you wi
 ```elixir
 def deps do
   [
-    {:scitree, "~> 0.1.0", github: "jeantux/scitree", branch: "main"}
+    {:scitree, "~> 0.1.0"}
   ]
 end
 ```
@@ -48,5 +49,5 @@ end
 Alternatively, inside a script or Livebook:
 
 ```elixir
-Mix.install([{:scitree, "~> 0.1.0", github: "jeantux/scitree", branch: "main"}])
+Mix.install([{:scitree, "~> 0.1.0"}])
 ```

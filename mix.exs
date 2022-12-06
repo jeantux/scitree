@@ -9,7 +9,9 @@ defmodule Scitree.MixProject do
       app: :scitree,
       version: @version,
       elixir: "~> 1.13",
+      description: "A collection of state-of-the-art algorithms for Decision Forest.",
       start_permanent: Mix.env() == :prod,
+      docs: docs(),
       deps: deps(),
       package: package(),
       compilers: [:elixir_make] ++ Mix.compilers(),
@@ -28,12 +30,23 @@ defmodule Scitree.MixProject do
     ]
   end
 
+  defp docs do
+    [
+      main: "scitree",
+      source_ref: "v#{@version}",
+      source_url: @github_url
+    ]
+  end
+
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:elixir_make, "~> 0.6", runtime: false, github: "elixir-lang/elixir_make", override: true},
-      {:cc_precompiler, "~> 0.1.0", runtime: false, github: "cocoa-xu/cc_precompiler"},
-      {:nx, "~> 0.1.0", override: true}
+      {:elixir_make, "~> 0.6", runtime: false, override: true},
+      {:cc_precompiler, "~> 0.1.0", runtime: false},
+      {:nx, "~> 0.1.0", override: true},
+
+      # docs
+      {:ex_doc, "~> 0.29", only: :dev, runtime: false}
     ]
   end
 
