@@ -30,3 +30,6 @@ scitree-*.tar
 
 # Erlnif
 /c_src/erlnif/include
+
+# Checksums for precompile binaries.
+/checksum.exs

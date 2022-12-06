@@ -2,6 +2,7 @@ defmodule Scitree.MixProject do
   use Mix.Project
 
   @version "0.1.0"
+  @github_url "https://github.com/jeantux/scitree"
 
   def project do
     [
@@ -10,6 +11,7 @@ defmodule Scitree.MixProject do
       elixir: "~> 1.13",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
+      package: package(),
       compilers: [:elixir_make] ++ Mix.compilers(),
       make_precompiler: {:nif, CCPrecompiler},
       make_precompiler_url:
@@ -32,6 +34,15 @@ defmodule Scitree.MixProject do
       {:elixir_make, "~> 0.6", runtime: false, github: "elixir-lang/elixir_make", override: true},
       {:cc_precompiler, "~> 0.1.0", runtime: false, github: "cocoa-xu/cc_precompiler"},
       {:nx, "~> 0.1.0", override: true}
+    ]
+  end
+
+  defp package do
+    [
+      name: "scitree",
+      licenses: ["Apache-2.0"],
+      files: ~w(lib c_src mix.exs README* LICENSE* Makefile checksum.exs),
+      links: %{"GitHub" => @github_url},
     ]
   end
 end
