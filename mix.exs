@@ -41,9 +41,9 @@ defmodule Scitree.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:elixir_make, "~> 0.6", runtime: false, override: true},
+      {:elixir_make, "~> 0.6", runtime: false},
       {:cc_precompiler, "~> 0.1.0", runtime: false},
-      {:nx, "~> 0.1.0", override: true},
+      {:nx, "~> 0.1.0"},
 
       # docs
       {:ex_doc, "~> 0.29", only: :dev, runtime: false}

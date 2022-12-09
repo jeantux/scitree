@@ -3,7 +3,7 @@
 ```elixir
 Mix.install([
   {:explorer, "~> 0.1.1"},
-  {:scitree, "~> 0.1.0", github: "jeantux/scitree", branch: "main"}
+  {:scitree, "~> 0.1.0"}
 ])
 ```
 

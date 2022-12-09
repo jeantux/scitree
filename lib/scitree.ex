@@ -118,7 +118,7 @@ defmodule Scitree do
       ref =
         Scitree.Config.init()
         |> Scitree.Config.label("play_tennis")
-        |> Scitree.train(config, data_train)
+        |> Scitree.train(data_train)
 
   You can inspect the model to fetch the details:
 
